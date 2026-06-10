@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-06-10 16:37:23",
+  "quick_mode": false,
+  "total": 9,
+  "passed": 9,
+  "results": [
+    {
+      "name": "T1 IPC-SPSC 基本正确性 (单进程回环)",
+      "passed": true,
+      "duration_ms": 137.85830000051646,
+      "details": "100000 push, 100000 pop, 0 order-err",
+      "metrics": {
+        "throughput_msg_per_sec": 729564,
+        "errors": 0
+      }
+    },
+    {
+      "name": "T2 UDP recvmmsg 丢包率 (<0.1%)",
+      "passed": true,
+      "duration_ms": 9.02600000063103,
+      "details": "丢包 0/100000 (0.000%), 目标<0.1%",
+      "metrics": {
+        "loss_rate_pct": 0.0,
+        "packets_received": 100000
+      }
+    },
+    {
+      "name": "T3 工况归一化 + 自适应阈值误判率",
+      "passed": true,
+      "duration_ms": 0.29689999973925296,
+      "details": "工况误判 1/9 (11.1%)",
+      "metrics": {
+        "errors": 1,
+        "buckets": 6
+      }
+    },
+    {
+      "name": "T4 流式四点法雨流计数准确性",
+      "passed": true,
+      "duration_ms": 0.27599999975791434,
+      "details": "检测3循环, 总幅值70, 误差0.0%",
+      "metrics": {
+        "cycles": 3,
+        "error_pct": 0.0
+      }
+    },
+    {
+      "name": "T5 告警去抖 (10s冷却/分级)",
+      "passed": true,
+      "duration_ms": 0.2024000004894333,
+      "details": "触发2次推送(预期2:1+冷却后1), 去抖前共11次触发",
+      "metrics": {
+        "alerts_pushed": 2,
+        "cooldown_s": 10
+      }
+    },
+    {
+      "name": "T6 模型配置文件完整性 (4文件)",
+      "passed": true,
+      "duration_ms": 1.5142000002015266,
+      "details": "4/4 OK",
+      "metrics": {
+        "files_ok": 4
+      }
+    },
+    {
+      "name": "T7 前端拆分完整性 (2文件+类)",
+      "passed": true,
+      "duration_ms": 0.9350000000267755,
+      "details": "文件3/3",
+      "metrics": {
+        "files": 3
+      }
+    },
+    {
+      "name": "T8 微服务源码完整性 (5服务)",
+      "passed": true,
+      "duration_ms": 1.1881000000357744,
+      "details": "服务5/5",
+      "metrics": {
+        "services": 5
+      }
+    },
+    {
+      "name": "T9 CMakeLists多target定义",
+      "passed": true,
+      "duration_ms": 0.3691000001708744,
+      "details": "target 6/6, common静态库=Y",
+      "metrics": {
+        "targets_found": 6,
+        "common_lib": true
+      }
+    }
+  ]
+}

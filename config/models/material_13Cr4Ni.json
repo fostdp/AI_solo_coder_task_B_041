@@ -1,0 +1,84 @@
+{
+  "material_name": "13Cr4Ni马氏体不锈钢",
+  "material_standard": "ASTM A743 CA6NM",
+  "description": "水电转轮常用抗空蚀疲劳材料",
+  "mechanical_properties": {
+    "ultimate_tensile_strength_mpa": {
+      "value": 750,
+      "tolerance": 50,
+      "test_standard": "GB/T 228.1"
+    },
+    "yield_strength_0.2_mpa": {
+      "value": 550,
+      "tolerance": 40
+    },
+    "fatigue_limit_1e7_cycles_mpa": {
+      "value": 250,
+      "stress_ratio_R": -1,
+      "test_type": "rotary_bending"
+    },
+    "fracture_toughness_kic_mpa_m05": {
+      "value": 60,
+      "temperature_c": 20
+    },
+    "youngs_modulus_gpa": 200,
+    "poissons_ratio": 0.3,
+    "density_kg_m3": 7700,
+    "hardness_hb": 260
+  },
+  "s_n_curve_parameters": {
+    "description": "Basquin方程: σ_a^m × N_f = k",
+    "fatigue_strength_coefficient_k": {
+      "value": 5.0e-12,
+      "calibration_method": "least_squares_fit",
+      "test_temperature_c": 20,
+      "stress_ratio_R": -1
+    },
+    "fatigue_strength_exponent_m": {
+      "value": 3.0,
+      "calibration_range_cycles": [1e4, 1e7]
+    },
+    "cavitation_erosion_rate_mm3_h": {
+      "value": 0.0012,
+      "test_standard": "ASTM G32",
+      "cavitation_stage": "developed"
+    },
+    "goodman_correction": {
+      "enabled": true,
+      "method": "Goodman_diagram",
+      "ultimate_stress_reference_mpa": 750,
+      "applicable_mean_stress_range_mpa": [0, 500]
+    },
+    "miner_rule": {
+      "damage_exponent": 1.0,
+      "accumulation_method": "linear_Miner",
+      "critical_damage_sum": 1.0,
+      "safety_factor": 1.5
+    }
+  },
+  "cavitation_resistance": {
+    "material_class": "high_energy_grade",
+    "cavitation_resistance_rating": 8.5,
+    "max_service_cycles_no_repair": 150000,
+    "typical_repair_method": "TIG_surfacing_with_316L"
+  },
+  "recommended_operating_limits": {
+    "expected_service_life_hours": 200000,
+    "max_cumulative_damage_before_repair": 0.5,
+    "inspection_interval_hours": 8000,
+    "critical_life_threshold_percent": 10,
+    "warning_life_threshold_percent": 20
+  },
+  "environmental_factors": {
+    "temperature_correction_coefficient": 0.98,
+    "water_ph_range": [6.5, 8.5],
+    "sediment_correction_factor": 1.15,
+    "corrosion_inhibition": false
+  },
+  "inspection_schedule": {
+    "visual_inspection_hours": 4000,
+    "ndt_ultrasonic_hours": 16000,
+    "mt_penetrant_hours": 32000,
+    "full_dismantle_inspection_hours": 80000
+  }
+}

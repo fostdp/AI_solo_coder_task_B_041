@@ -1,0 +1,133 @@
+{
+  "model_name": "AutoEncoder_Cavitation_v1.0",
+  "model_version": "1.0.0",
+  "created_at": "2026-06-10",
+  "description": "深度自编码器空化检测模型 - 32维输入→16隐藏→8编码→16隐藏→32输出",
+  "architecture": {
+    "type": "DenoisingAutoEncoder",
+    "input_dimension": 32,
+    "layers": [
+      {"name": "encoder_1", "type": "dense", "units": 16, "activation": "relu", "input_dim": 32},
+      {"name": "encoder_2", "type": "dense", "units": 8, "activation": "sigmoid", "input_dim": 16},
+      {"name": "latent", "type": "latent", "units": 8},
+      {"name": "decoder_1", "type": "dense", "units": 16, "activation": "relu", "input_dim": 8},
+      {"name": "decoder_2", "type": "dense", "units": 32, "activation": "linear", "input_dim": 16}
+    ],
+    "total_parameters": 1232
+  },
+  "parameters": {
+    "weights_initializer": "he_normal",
+    "bias_initializer": "zeros",
+    "loss_function": "MSE",
+    "reconstruction_threshold": 0.05,
+    "error_normalization": "z_score_per_bucket"
+  },
+  "training": {
+    "method": "Adam",
+    "learning_rate": 0.001,
+    "learning_rate_scheduler": "ReduceOnPlateau",
+    "batch_size": 256,
+    "epochs": 200,
+    "early_stopping_patience": 15,
+    "dropout_rate": 0.2,
+    "noise_factor": 0.1,
+    "training_samples": 80000,
+    "validation_samples": 8000,
+    "test_samples": 8000,
+    "final_training_loss": 0.0023,
+    "final_validation_loss": 0.0031,
+    "training_accuracy_anomaly_detection": 0.937
+  },
+  "features_input": [
+    {"name": "peak_frequency", "weight": 1.0, "type": "spectrum"},
+    {"name": "rms_value", "weight": 1.2, "type": "spectrum"},
+    {"name": "crest_factor", "weight": 1.1, "type": "spectrum"},
+    {"name": "kurtosis", "weight": 1.3, "type": "spectrum"},
+    {"name": "skewness", "weight": 0.9, "type": "spectrum"},
+    {"name": "band_energy_low", "weight": 0.8, "type": "spectrum"},
+    {"name": "band_energy_mid", "weight": 1.0, "type": "spectrum"},
+    {"name": "band_energy_high", "weight": 1.4, "type": "spectrum"},
+    {"name": "harmonic_ratio", "weight": 0.9, "type": "spectrum"},
+    {"name": "spectral_centroid", "weight": 1.0, "type": "spectrum"},
+    {"name": "spectral_bandwidth", "weight": 0.8, "type": "spectrum"},
+    {"name": "wavelet_band_0", "weight": 0.7, "type": "wavelet"},
+    {"name": "wavelet_band_1", "weight": 0.8, "type": "wavelet"},
+    {"name": "wavelet_band_2", "weight": 0.9, "type": "wavelet"},
+    {"name": "wavelet_band_3", "weight": 1.0, "type": "wavelet"},
+    {"name": "wavelet_band_4", "weight": 1.1, "type": "wavelet"},
+    {"name": "wavelet_band_5", "weight": 1.2, "type": "wavelet"},
+    {"name": "wavelet_band_6", "weight": 1.3, "type": "wavelet"},
+    {"name": "wavelet_band_7", "weight": 1.4, "type": "wavelet"},
+    {"name": "wavelet_band_8", "weight": 1.4, "type": "wavelet"},
+    {"name": "wavelet_band_9", "weight": 1.3, "type": "wavelet"},
+    {"name": "wavelet_band_10", "weight": 1.2, "type": "wavelet"},
+    {"name": "wavelet_band_11", "weight": 1.1, "type": "wavelet"},
+    {"name": "wavelet_band_12", "weight": 1.0, "type": "wavelet"},
+    {"name": "wavelet_band_13", "weight": 0.9, "type": "wavelet"},
+    {"name": "wavelet_band_14", "weight": 0.8, "type": "wavelet"},
+    {"name": "wavelet_band_15", "weight": 0.7, "type": "wavelet"},
+    {"name": "energy_entropy", "weight": 1.2, "type": "wavelet"},
+    {"name": "total_energy", "weight": 1.0, "type": "wavelet"},
+    {"name": "cavitation_ratio", "weight": 1.3, "type": "derived"},
+    {"name": "high_freq_ratio", "weight": 1.2, "type": "derived"},
+    {"name": "burst_factor", "weight": 1.1, "type": "derived"}
+  ],
+  "layer_weights": {
+    "encoder_1": {
+      "shape": [16, 32],
+      "file": "encoder_1_weights.bin",
+      "biases_file": "encoder_1_biases.bin"
+    },
+    "encoder_2": {
+      "shape": [8, 16],
+      "file": "encoder_2_weights.bin",
+      "biases_file": "encoder_2_biases.bin"
+    },
+    "decoder_1": {
+      "shape": [16, 8],
+      "file": "decoder_1_weights.bin",
+      "biases_file": "decoder_1_biases.bin"
+    },
+    "decoder_2": {
+      "shape": [32, 16],
+      "file": "decoder_2_weights.bin",
+      "biases_file": "decoder_2_biases.bin"
+    }
+  },
+  "evaluation": {
+    "normal_reconstruction_error_mean": 0.023,
+    "normal_reconstruction_error_std": 0.008,
+    "incipient_reconstruction_error_mean": 0.058,
+    "incipient_reconstruction_error_std": 0.015,
+    "critical_reconstruction_error_mean": 0.112,
+    "critical_reconstruction_error_std": 0.028,
+    "developed_reconstruction_error_mean": 0.245,
+    "developed_reconstruction_error_std": 0.054,
+    "roc_auc": 0.956,
+    "precision_at_90_recall": 0.88
+  },
+  "ensemble": {
+    "autoencoder_weight": 0.5,
+    "isolation_forest_weight": 0.5,
+    "combination_method": "weighted_average",
+    "calibration_method": "isotonic_regression"
+  },
+  "condition_normalization": {
+    "enabled": true,
+    "method": "operating_condition_bucket_zscore",
+    "bucket_dimensions": ["head", "load_percent"],
+    "bucket_size_head_m": 10,
+    "bucket_size_load_percent": 20,
+    "min_samples_per_bucket": 50,
+    "default_fallback_percentile": 99
+  },
+  "deployment": {
+    "model_path": "config/models/autoencoder_params.bin",
+    "weight_format": "flat_float32",
+    "inference_engine": "native",
+    "target_platform": "CPU_x86_64",
+    "avx_enabled": true,
+    "inference_latency_ms": 0.05,
+    "memory_usage_mb": 0.5
+  }
+}

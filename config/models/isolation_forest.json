@@ -1,0 +1,93 @@
+{
+  "model_name": "IsolationForest_Cavitation_v1.0",
+  "model_version": "1.0.0",
+  "created_at": "2026-06-10",
+  "description": "空化检测孤立森林模型 - 基于频谱特征和小波包能量的异常检测",
+  "parameters": {
+    "num_trees": 100,
+    "subsampling_size": 256,
+    "max_depth": 100,
+    "contamination": 0.1
+  },
+  "training": {
+    "method": "iForest",
+    "loss_function": "path_length",
+    "optimizer": "random_splits",
+    "training_samples": 50000,
+    "validation_samples": 5000,
+    "feature_dimension": 32,
+    "feature_scaling": "standard",
+    "training_accuracy": 0.943,
+    "validation_accuracy": 0.928
+  },
+  "features": [
+    {"name": "peak_frequency", "type": "spectrum", "normalization": "z_score"},
+    {"name": "rms_value", "type": "spectrum", "normalization": "log"},
+    {"name": "crest_factor", "type": "spectrum", "normalization": "z_score"},
+    {"name": "kurtosis", "type": "spectrum", "normalization": "z_score"},
+    {"name": "skewness", "type": "spectrum", "normalization": "z_score"},
+    {"name": "band_energy_low", "type": "spectrum", "normalization": "log"},
+    {"name": "band_energy_mid", "type": "spectrum", "normalization": "log"},
+    {"name": "band_energy_high", "type": "spectrum", "normalization": "log"},
+    {"name": "harmonic_ratio", "type": "spectrum", "normalization": "z_score"},
+    {"name": "spectral_centroid", "type": "spectrum", "normalization": "z_score"},
+    {"name": "spectral_bandwidth", "type": "spectrum", "normalization": "z_score"},
+    {"name": "band_0_1000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_1000_2000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_2000_4000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_4000_8000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_8000_12000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_12000_16000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_16000_20000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_20000_24000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_24000_28000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_28000_32000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_32000_36000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_36000_40000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_40000_44000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_44000_48000Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "band_48000_51200Hz", "type": "wavelet", "normalization": "log"},
+    {"name": "energy_entropy", "type": "wavelet", "normalization": "z_score"},
+    {"name": "total_energy", "type": "wavelet", "normalization": "log"},
+    {"name": "cavitation_harmonic_ratio", "type": "derived", "normalization": "z_score"},
+    {"name": "spectral_flatness", "type": "derived", "normalization": "z_score"},
+    {"name": "impulse_factor", "type": "derived", "normalization": "z_score"},
+    {"name": "vibration_rms_ratio", "type": "derived", "normalization": "z_score"}
+  ],
+  "evaluation": {
+    "precision_normal": 0.96,
+    "precision_incipient": 0.90,
+    "precision_critical": 0.87,
+    "precision_developed": 0.95,
+    "recall_normal": 0.98,
+    "recall_incipient": 0.85,
+    "recall_critical": 0.91,
+    "recall_developed": 0.93,
+    "f1_macro": 0.913,
+    "roc_auc": 0.967
+  },
+  "condition_buckets": {
+    "head_ranges_m": [80, 100, 120, 140, 160],
+    "load_ranges_percent": [20, 40, 60, 80, 100],
+    "default_thresholds": {
+      "incipient": 0.3,
+      "critical": 0.6,
+      "developed": 0.8
+    },
+    "adaptive": {
+      "ewma_alpha": 0.05,
+      "window_size": 1000,
+      "sigma_multiplier_incipient": 2.0,
+      "sigma_multiplier_critical": 3.0,
+      "sigma_multiplier_developed": 4.5,
+      "min_samples_for_adaptive": 50
+    }
+  },
+  "deployment": {
+    "model_file_path": "config/models/isolation_forest_model.bin",
+    "weight_format": "binary",
+    "target_device": "CPU",
+    "inference_engine": "native",
+    "inference_latency_ms": 0.8
+  }
+}
