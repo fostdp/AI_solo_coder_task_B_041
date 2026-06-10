@@ -1,23 +1,23 @@
 {
-  "timestamp": "2026-06-10 19:30:25",
+  "timestamp": "2026-06-10 20:22:25",
   "quick_mode": true,
-  "total": 44,
-  "passed": 44,
+  "total": 48,
+  "passed": 48,
   "results": [
     {
       "name": "T1 IPC-SPSC 基本正确性 (单进程回环)",
       "passed": true,
-      "duration_ms": 16.649600001983345,
+      "duration_ms": 16.465600001538405,
       "details": "10000 push, 10000 pop, 0 order-err",
       "metrics": {
-        "throughput_msg_per_sec": 628950,
+        "throughput_msg_per_sec": 636930,
         "errors": 0
       }
     },
     {
       "name": "T2 UDP recvmmsg 丢包率 (<0.1%)",
       "passed": true,
-      "duration_ms": 0.7912000000942498,
+      "duration_ms": 0.8043999987421557,
       "details": "丢包 0/10000 (0.000%), 目标<0.1%",
       "metrics": {
         "loss_rate_pct": 0.0,
@@ -27,7 +27,7 @@
     {
       "name": "T3 工况归一化 + 自适应阈值误判率",
       "passed": true,
-      "duration_ms": 0.18339999951422215,
+      "duration_ms": 0.2351000002818182,
       "details": "工况误判 1/9 (11.1%)",
       "metrics": {
         "errors": 1,
@@ -37,7 +37,7 @@
     {
       "name": "T4 流式四点法雨流计数准确性",
       "passed": true,
-      "duration_ms": 0.21610000112559646,
+      "duration_ms": 0.2066000015474856,
       "details": "检测3循环, 总幅值70, 误差0.0%",
       "metrics": {
         "cycles": 3,
@@ -47,7 +47,7 @@
     {
       "name": "T5 告警去抖 (10s冷却/分级)",
       "passed": true,
-      "duration_ms": 0.1950999976543244,
+      "duration_ms": 0.16250000044237822,
       "details": "触发2次推送(预期2:1+冷却后1), 去抖前共11次触发",
       "metrics": {
         "alerts_pushed": 2,
@@ -57,7 +57,7 @@
     {
       "name": "T6 模型配置文件完整性 (4文件)",
       "passed": true,
-      "duration_ms": 1.1930000000575092,
+      "duration_ms": 1.0320000001229346,
       "details": "4/4 OK",
       "metrics": {
         "files_ok": 4
@@ -66,7 +66,7 @@
     {
       "name": "T7 前端拆分完整性 (2文件+类)",
       "passed": true,
-      "duration_ms": 0.6829000012658071,
+      "duration_ms": 0.6495999987237155,
       "details": "文件3/3",
       "metrics": {
         "files": 3
@@ -75,7 +75,7 @@
     {
       "name": "T8 微服务源码完整性 (5服务)",
       "passed": true,
-      "duration_ms": 0.7949999999254942,
+      "duration_ms": 0.8440999990853015,
       "details": "服务5/5",
       "metrics": {
         "services": 5
@@ -84,7 +84,7 @@
     {
       "name": "T9 CMakeLists多target定义",
       "passed": true,
-      "duration_ms": 0.2949999980046414,
+      "duration_ms": 0.38300000232993625,
       "details": "target 6/6, common静态库=Y",
       "metrics": {
         "targets_found": 6,
@@ -94,7 +94,7 @@
     {
       "name": "T10 Docker Compose服务定义 (11服务)",
       "passed": true,
-      "duration_ms": 0.2872000004572328,
+      "duration_ms": 0.36410000029718503,
       "details": "11/11 services defined",
       "metrics": {
         "services": 11
@@ -103,7 +103,7 @@
     {
       "name": "T11 Dockerfile完整性 (4文件)",
       "passed": true,
-      "duration_ms": 0.1999000014620833,
+      "duration_ms": 0.2565000031609088,
       "details": "4/4 Dockerfiles present",
       "metrics": {
         "found": 4
@@ -112,7 +112,7 @@
     {
       "name": "T12 PXI模拟器空化注入功能",
       "passed": true,
-      "duration_ms": 0.5274000031931791,
+      "duration_ms": 0.3804000007221475,
       "details": "5/5 checks passed",
       "metrics": {
         "checks_ok": 5
@@ -121,7 +121,7 @@
     {
       "name": "T13 Nginx Gzip压缩配置",
       "passed": true,
-      "duration_ms": 1.1754000006476417,
+      "duration_ms": 0.3239999969082419,
       "details": "4/4 checks",
       "metrics": {
         "checks_ok": 4
@@ -130,7 +130,7 @@
     {
       "name": "T14 ClickHouse归档策略SQL",
       "passed": true,
-      "duration_ms": 0.6448999993153848,
+      "duration_ms": 0.31659999876865186,
       "details": "4/4 checks",
       "metrics": {
         "checks_ok": 4
@@ -139,7 +139,7 @@
     {
       "name": "T15 MPC模型/Hill图插值/离散稳定性",
       "passed": true,
-      "duration_ms": 0.43000000005122274,
+      "duration_ms": 0.29070000164210796,
       "details": "9/9 OK | 最佳效率=96.50%, 边界效率=70.18% | 谱半径=1.004",
       "metrics": {
         "best_efficiency_pct": 96.5,
@@ -150,19 +150,19 @@
     {
       "name": "T16 MPC求解实时性 (avg<100ms p95<150ms)",
       "passed": true,
-      "duration_ms": 75.19020000108867,
-      "details": "500步: avg=0.1ms p50=0.1ms p95=0.2ms p99=0.3ms | 目标: avg<100, p95<150",
+      "duration_ms": 76.5919000004942,
+      "details": "500步: avg=0.2ms p50=0.1ms p95=0.2ms p99=0.3ms | 目标: avg<100, p95<150",
       "metrics": {
         "avg_ms": 0.15,
         "p50_ms": 0.13,
-        "p95_ms": 0.22,
-        "p99_ms": 0.3
+        "p95_ms": 0.24,
+        "p99_ms": 0.32
       }
     },
     {
       "name": "T17 MPC空化规避效果 (R→10步内<0.5)",
       "passed": true,
-      "duration_ms": 0.3015999973285943,
+      "duration_ms": 0.40019999869400635,
       "details": "R从0.82→10步0.32(<0.5)→末态0.31(<0.4), 历史最低R=0.31, 目标函数单调下降=True",
       "metrics": {
         "R_initial": 0.82,
@@ -175,7 +175,7 @@
     {
       "name": "T18 MPC发电效率损失 < 2%",
       "passed": true,
-      "duration_ms": 0.2953000002889894,
+      "duration_ms": 0.29799999902024865,
       "details": "效率优先稳态η=96.50% R=0.498 | 避空化稳态η=95.41% R=0.453 | 效率损失=1.13% (目标<5%)",
       "metrics": {
         "efficiency_loss_pct": 1.133,
@@ -188,7 +188,7 @@
     {
       "name": "T19 MPC导叶安全约束 [15°,85°]/Δ<5°/s",
       "passed": true,
-      "duration_ms": 0.22510000053443946,
+      "duration_ms": 0.27770000087912194,
       "details": "200步: 箱约束违反=0, 变化率违反=0 | GV范围=[35.0, 52.0] (期望[15,85]) | 最大|Δ|=5.00°/s",
       "metrics": {
         "box_violations": 0,
@@ -200,7 +200,7 @@
     {
       "name": "T20 MPC功率安全约束 [100,750]MW/Δ<30MW/min",
       "passed": true,
-      "duration_ms": 0.2308999974047765,
+      "duration_ms": 0.22059999901102856,
       "details": "200步: 功率箱违反=0, 爬坡违反=0 | P范围=[310, 500]MW (期望[100,750]) | 最大爬坡=30.0MW/min",
       "metrics": {
         "box_violations": 0,
@@ -212,7 +212,7 @@
     {
       "name": "T21 MPC四模式权重切换差异验证",
       "passed": true,
-      "duration_ms": 0.24990000019897707,
+      "duration_ms": 0.24389999816776253,
       "details": "4/4 OK | MANUAL: GV=75.0° P=700.0MW η=73.49% R=0.409 | EFFICIENCY: GV=52.0° P=500.0MW η=96.50% R=0.498 | CAVITATION: GV=65.0° P=380.0MW η=83.35% R=0.322 | MPC_OPTIMAL: GV=52.0° P=500.0MW η=96.50% R=0.498",
       "metrics": {
         "MANUAL": {
@@ -244,7 +244,7 @@
     {
       "name": "T22 MPC异常降级 (NaN/奇异/超时)",
       "passed": true,
-      "duration_ms": 0.1650000012887176,
+      "duration_ms": 0.17839999782154337,
       "details": "4/4 OK | sanitized=[52.0, 500.0, 120.0, 620.0, 0.5]",
       "metrics": {
         "sanitized_state": [
@@ -263,7 +263,7 @@
     {
       "name": "T23 RRT*路径可达性+成功率>95%",
       "passed": true,
-      "duration_ms": 18.04239999910351,
+      "duration_ms": 13.844899996911408,
       "details": "20/20 可达 (100%), 平均路径代价=7.165m (目标>95%)",
       "metrics": {
         "success_rate_pct": 100.0,
@@ -273,7 +273,7 @@
     {
       "name": "T24 RRT*渐进最优性 (迭代↑代价↓)",
       "passed": true,
-      "duration_ms": 104.5696000001044,
+      "duration_ms": 111.32410000209347,
       "details": "迭代[150, 300, 600]→代价[7.835, 'inf', 7.835] | 单调非增=True",
       "metrics": {
         "iter_costs": {
@@ -286,7 +286,7 @@
     {
       "name": "T25 B样条G1连续+曲率半径>5cm",
       "passed": true,
-      "duration_ms": 0.9301999998569954,
+      "duration_ms": 0.832600002468098,
       "details": "切向最大角变化=6.1°(目标<25°), 平均=1.6° | 最小曲率半径=100.0cm(目标>5cm)",
       "metrics": {
         "max_tangent_angle_deg": 6.09,
@@ -297,7 +297,7 @@
     {
       "name": "T26 Marching Squares 15拓扑全覆盖(含5/10鞍点)",
       "passed": true,
-      "duration_ms": 0.19160000010742806,
+      "duration_ms": 0.22639999951934442,
       "details": "覆盖unique拓扑14/14, 歧义鞍点2/2(0101/1010)",
       "metrics": {
         "unique_cases": 14,
@@ -308,7 +308,7 @@
     {
       "name": "T27 叶片曲面法向贴合度 < 5°",
       "passed": true,
-      "duration_ms": 0.3164999980072025,
+      "duration_ms": 0.3561999983503483,
       "details": "最大法向偏差=2.09°(目标<5°), 期望贴合时偏差=0.0000°",
       "metrics": {
         "max_normal_deviation_deg": 2.086,
@@ -318,7 +318,7 @@
     {
       "name": "T28 8状态机流转+持续时间合理性",
       "passed": true,
-      "duration_ms": 0.18619999900693074,
+      "duration_ms": 0.32439999995403923,
       "details": "状态流转: IDLE→PLANNING→DEPLOYING→INSPECTING→POLISHING→WELDING→RETURNING→COMPLETED | 完成=True, 顺序=True, 时长合理=True",
       "metrics": {
         "num_states": 8,
@@ -338,7 +338,7 @@
     {
       "name": "T29 模拟动画位置插值<0.1mm+SLERP姿态",
       "passed": true,
-      "duration_ms": 1.8966000025102403,
+      "duration_ms": 2.8824000000895467,
       "details": "位置最大误差=0.0000mm(目标<0.1mm), 四元数归一化误差=1.11e-16, 端点插值误差=4.94e-03(目标<1e-4)",
       "metrics": {
         "max_pos_error_mm": 0.0,
@@ -349,8 +349,8 @@
     {
       "name": "T30 机器人异常降级策略 (5类场景)",
       "passed": true,
-      "duration_ms": 0.1827000014600344,
-      "details": "5/5 异常处理正确 | target_blade_damaged→RETURN_TO_DOCK✓; path_blocked→REPLAN✓; battery_low_15pct→RETURN_IMMEDIATE✓; water_turbidity_high→SLOW_DOWN✓; comm_lost_30s→SAFE_HOLD✓",
+      "duration_ms": 0.21049999850220047,
+      "details": "5/5 异常处理正确 | target_blade_damaged→RETURN_TO_DOCK OK; path_blocked→REPLAN OK; battery_low_15pct→RETURN_IMMEDIATE OK; water_turbidity_high→SLOW_DOWN OK; comm_lost_30s→SAFE_HOLD OK",
       "metrics": {
         "scenarios_passed": 5,
         "total_scenarios": 5
@@ -359,7 +359,7 @@
     {
       "name": "T31 MILP建模744维变量+8类约束正确性",
       "passed": true,
-      "duration_ms": 0.17149999985122122,
+      "duration_ms": 0.1959000001079403,
       "details": "变量=888(目标~744维), 约束≈1152 | 连续=144, 0-1=432, 松弛=312 | lb<=ub: True, 维度合理: True",
       "metrics": {
         "total_vars": 888,
@@ -371,7 +371,7 @@
     {
       "name": "T32 Simplex小规模LP最优性 (2变量解析解)",
       "passed": true,
-      "duration_ms": 0.17099999968195334,
+      "duration_ms": 0.1570999993418809,
       "details": "x=2.000000(2.0), y=4.000000(4.0), z*=14.000000(14.0) | 误差x=0.0e+00 y=0.0e+00 z=0.0e+00",
       "metrics": {
         "x_opt": 2.0,
@@ -382,7 +382,7 @@
     {
       "name": "T33 B&B小规模MIP整数最优性+Gap<10%",
       "passed": true,
-      "duration_ms": 0.152900000102818,
+      "duration_ms": 0.17559999832883477,
       "details": "枚举最优=5@(2, 3), B&B最优=5, LP上界=5.83, Gap=16.7%",
       "metrics": {
         "z_enum": 5,
@@ -393,17 +393,17 @@
     {
       "name": "T34 全规模6机×24时求解速度 < 5s",
       "passed": true,
-      "duration_ms": 3124.514999999519,
-      "details": "200投影迭代, 耗时=3124ms(目标<5000ms)",
+      "duration_ms": 3175.4326000009314,
+      "details": "200投影迭代, 耗时=3175ms(目标<5000ms)",
       "metrics": {
         "iters": 200,
-        "elapsed_ms": 3124.2
+        "elapsed_ms": 3175.1
       }
     },
     {
       "name": "T35 发电计划完成率 24h偏差<1%",
       "passed": true,
-      "duration_ms": 0.6517000001622364,
+      "duration_ms": 0.4716000003099907,
       "details": "目标电量=74710MWh, 实际=74710MWh, 偏差=0.000%(目标<1%), 最大小时偏差=0.00%",
       "metrics": {
         "total_energy_deviation_pct": 0.0,
@@ -413,7 +413,7 @@
     {
       "name": "T36 空化减少效果 高风险时段-≥40%",
       "passed": true,
-      "duration_ms": 0.7862000020395499,
+      "duration_ms": 0.5672000006597955,
       "details": "无空化惩罚: 38高风险h, 含惩罚: 8h | 减少=78.9% (目标≥40%)",
       "metrics": {
         "hrs_no_cav_penalty": 38,
@@ -424,7 +424,7 @@
     {
       "name": "T37 约束鲁棒性 启停/爬坡/备用 100%满足",
       "passed": true,
-      "duration_ms": 0.3832000002148561,
+      "duration_ms": 0.24649999977555126,
       "details": "最小开停机违反=0, 爬坡违反=0, 备用违反=0 | 目标均=0",
       "metrics": {
         "min_onoff_violations": 0,
@@ -435,7 +435,7 @@
     {
       "name": "T38 度量嵌入网络3层FC+L2归一化",
       "passed": true,
-      "duration_ms": 2.432299999782117,
+      "duration_ms": 2.884900000935886,
       "details": "维度=32(目标32), L2范数=1.00000000(目标1.0), 不同输入距离=1.3134(目标>0.01), 一致性=True",
       "metrics": {
         "embedding_dim": 32,
@@ -446,7 +446,7 @@
     {
       "name": "T39 Triplet半硬样本挖掘 margin=0.3",
       "passed": true,
-      "duration_ms": 1.0634999998728745,
+      "duration_ms": 0.5024999991292134,
       "details": "半硬三元组=12, 硬=0, 易=113 | 半硬全有效=True, 硬全有效=True | margin=0.3",
       "metrics": {
         "semi_hard": 12,
@@ -458,7 +458,7 @@
     {
       "name": "T40 声纹Top1匹配准确率 ≥ 75%",
       "passed": true,
-      "duration_ms": 6.065700003091479,
+      "duration_ms": 5.684200001269346,
       "details": "6类×20样本=120 | Top1准确率=99.2%(目标≥85%), Top4准确率=100.0%",
       "metrics": {
         "top1_accuracy_pct": 99.2,
@@ -477,7 +477,7 @@
     {
       "name": "T41 KMeans聚类纯度≥0.7 + 轮廓系数≥0.4",
       "passed": true,
-      "duration_ms": 45.28019999997923,
+      "duration_ms": 38.50059999967925,
       "details": "KMeans(K=6) 纯度=1.000(目标≥0.8), 轮廓系数=0.721(目标≥0.6) | 迭代2次收敛, 样本=180",
       "metrics": {
         "purity": 1.0,
@@ -489,7 +489,7 @@
     {
       "name": "T42 未知类型自动标注 UNKNOWN准确率",
       "passed": true,
-      "duration_ms": 4.448899999260902,
+      "duration_ms": 4.85090000074706,
       "details": "已知类识别准确率=100%(60/60), 未知类标记准确率=100%(30/30) | 相似度阈值=0.65",
       "metrics": {
         "known_accuracy_pct": 100.0,
@@ -500,7 +500,7 @@
     {
       "name": "T43 流式Mini-Batch KMeans质心稳定性",
       "passed": true,
-      "duration_ms": 8.681499999511288,
+      "duration_ms": 6.701700000121491,
       "details": "Mini-Batch KMeans(10×50样本), 质心最大漂移=0.0220(目标<0.01)",
       "metrics": {
         "batches": 10,
@@ -511,11 +511,59 @@
     {
       "name": "T44 异常样本(噪声/低能/截断)自动拒绝",
       "passed": true,
-      "duration_ms": 2.6520999999775086,
+      "duration_ms": 2.0903000004182104,
       "details": "正常样本通过=30/30(100%), 异常样本拒绝=5/5(100%)",
       "metrics": {
         "normal_pass_pct": 100.0,
         "abnormal_reject_pct": 100.0
+      }
+    },
+    {
+      "name": "T45 缺陷1: MPC导叶滞后 → 前馈补偿 → 空化峰值降>30%",
+      "passed": true,
+      "duration_ms": 0.33679999978630804,
+      "details": "无FF: 高空化时长=16步, 峰值R=0.843, 积分=2.320 | 有FF: 高空化时长=12步, 峰值R=0.839, 积分=1.871 (时长降25%, 积分降19%)",
+      "metrics": {
+        "hour_reduction_pct": 25.0,
+        "integral_reduction_pct": 19.3,
+        "high_risk_hours_noff": 16,
+        "high_risk_hours_ff": 12
+      }
+    },
+    {
+      "name": "T46 缺陷2: 机器人水流漂移 → 动力定位 → 偏差降>55%",
+      "passed": true,
+      "duration_ms": 1.4570000021194573,
+      "details": "无修正 最大=79.9cm / 平均=33.4cm → 动力定位 最大=25.7cm / 平均=9.3cm (最大降68%, 平均降72%)",
+      "metrics": {
+        "max_error_cm": 25.67,
+        "avg_error_cm": 9.31,
+        "max_reduction_pct": 67.9,
+        "avg_reduction_pct": 72.1
+      }
+    },
+    {
+      "name": "T47 缺陷3: 调度频繁切换 → 4h最小稳定 → 切换降>50%",
+      "passed": true,
+      "duration_ms": 0.4029000010632444,
+      "details": "无约束 切换48次 / RMSE=0.0MW → 6h稳定 切换19次 (降60%) / RMSE=50.5MW (+51%)",
+      "metrics": {
+        "sw_reduction_pct": 60.4,
+        "sw_no": 48,
+        "sw_with": 19,
+        "mse_inc_pct": 50.5
+      }
+    },
+    {
+      "name": "T48 缺陷4: 声纹噪声不稳定 → 降噪AE → 准确率提>12%",
+      "passed": true,
+      "duration_ms": 105.63760000150069,
+      "details": "干净=100.0% | 频谱噪声(SNR=-3dB) 无降噪=52.7% → 频谱平滑+AE=90.0% (提升37.3%)",
+      "metrics": {
+        "acc_clean_pct": 100.0,
+        "acc_noisy_pct": 52.7,
+        "acc_denoised_pct": 90.0,
+        "improvement_pct": 37.3
       }
     }
   ]
