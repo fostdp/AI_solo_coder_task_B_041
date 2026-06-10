@@ -3,138 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧油田注水开发动态调控系统</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/style.css" />
+    <title>大型水电站水轮机空化噪声监测与寿命评估系统</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="app-container">
         <header class="app-header">
-            <h1>智慧油田注水开发动态调控系统</h1>
-            <div class="header-info">
-                <span id="current-time">--</span>
-                <span class="status-indicator online">系统在线</span>
+            <div class="logo">
+                <svg width="40" height="40" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="18" fill="#1e3a5f" stroke="#00d4ff" stroke-width="2"/>
+                    <path d="M20 5 L25 20 L20 35 L15 20 Z" fill="#00d4ff" opacity="0.8"/>
+                    <circle cx="20" cy="20" r="6" fill="#1e3a5f" stroke="#00d4ff" stroke-width="2"/>
+                </svg>
+                <h1>水轮机空化噪声监测与寿命评估系统</h1>
+            </div>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-label">在线机组</span>
+                    <span class="stat-value" id="onlineTurbines">6/6</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">活跃告警</span>
+                    <span class="stat-value alarm" id="activeAlarms">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">系统时间</span>
+                    <span class="stat-value" id="systemTime">--:--:--</span>
+                </div>
             </div>
         </header>
 
         <div class="main-content">
-            <aside class="left-panel">
-                <div class="panel-section">
-                    <h3>核心指标</h3>
-                    <div class="indicator-cards">
-                        <div class="indicator-card oil">
-                            <div class="indicator-label">日产油量</div>
-                            <div class="indicator-value" id="daily-oil">--</div>
-                            <div class="indicator-unit">t</div>
-                            <div class="indicator-change" id="oil-change">--</div>
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>机组列表</h3>
+                    <div class="turbine-list" id="turbineList"></div>
+                </div>
+                <div class="sidebar-section">
+                    <h3>空化状态图例</h3>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <span class="legend-color normal"></span>
+                            <span>正常</span>
                         </div>
-                        <div class="indicator-card water">
-                            <div class="indicator-label">日注水量</div>
-                            <div class="indicator-value" id="daily-water">--</div>
-                            <div class="indicator-unit">m³</div>
-                            <div class="indicator-change" id="water-change">--</div>
+                        <div class="legend-item">
+                            <span class="legend-color incipient"></span>
+                            <span>初生空化</span>
                         </div>
-                        <div class="indicator-card cut">
-                            <div class="indicator-label">综合含水率</div>
-                            <div class="indicator-value" id="water-cut">--</div>
-                            <div class="indicator-unit">%</div>
-                            <div class="indicator-change" id="cut-change">--</div>
+                        <div class="legend-item">
+                            <span class="legend-color critical"></span>
+                            <span>临界空化</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color developed"></span>
+                            <span>发展空化</span>
                         </div>
                     </div>
                 </div>
-
-                <div class="panel-section">
-                    <h3>区块筛选</h3>
-                    <select id="block-selector" class="form-control">
-                        <option value="ALL">全部区块</option>
-                    </select>
-                </div>
-
-                <div class="panel-section">
-                    <h3>图层控制</h3>
-                    <div class="layer-controls">
-                        <label class="checkbox-item">
-                            <input type="checkbox" id="show-injection" checked>
-                            <span class="legend-circle injection"></span>
-                            注水井
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" id="show-production" checked>
-                            <span class="legend-triangle production"></span>
-                            采油井
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" id="show-relations" checked>
-                            <span class="legend-line"></span>
-                            注采对应关系
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" id="show-allocation" checked>
-                            <span class="legend-arrow"></span>
-                            调配建议
-                        </label>
-                    </div>
-                </div>
-
-                <div class="panel-section">
-                    <h3>注采受效图例</h3>
-                    <div class="legend-items">
-                        <div class="legend-item">
-                            <span class="legend-line" style="background: #00FF00;"></span>
-                            <span>高效受效</span>
+                <div class="sidebar-section">
+                    <h3>传感器状态</h3>
+                    <div class="sensor-stats" id="sensorStats">
+                        <div class="sensor-stat">
+                            <span class="sensor-name">水听器</span>
+                            <span class="sensor-count">72/72</span>
                         </div>
-                        <div class="legend-item">
-                            <span class="legend-line" style="background: #FFFF00;"></span>
-                            <span>中等受效</span>
+                        <div class="sensor-stat">
+                            <span class="sensor-name">加速度计</span>
+                            <span class="sensor-count">48/48</span>
                         </div>
-                        <div class="legend-item">
-                            <span class="legend-line" style="background: #FF0000;"></span>
-                            <span>无效受效</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="panel-section">
-                    <h3>告警信息 <span class="badge" id="alarm-badge">0</span></h3>
-                    <div class="alarm-list" id="alarm-list">
-                        <div class="no-data">暂无告警</div>
                     </div>
                 </div>
             </aside>
 
-            <main class="map-container">
-                <div id="map"></div>
-                <canvas id="well-canvas"></canvas>
-                <div class="map-controls">
-                    <button class="control-btn" onclick="refreshAllData()">
-                        <span>🔄</span> 刷新数据
-                    </button>
-                    <button class="control-btn" onclick="runAllocation()">
-                        <span>📊</span> 生成调配建议
-                    </button>
-                    <button class="control-btn" onclick="checkAlarms()">
-                        <span>⚠️</span> 检查告警
-                    </button>
+            <main class="content-area">
+                <div class="view-tabs">
+                    <button class="tab-btn active" data-tab="turbine-view">水轮机视图</button>
+                    <button class="tab-btn" data-tab="waterfall-view">瀑布图</button>
+                    <button class="tab-btn" data-tab="alarm-view">告警信息</button>
+                </div>
+
+                <div class="tab-content active" id="turbine-view">
+                    <div class="turbine-container">
+                        <canvas id="turbineCanvas"></canvas>
+                        <div class="turbine-info-overlay">
+                            <div class="info-card">
+                                <h4 id="currentTurbineName">1# 水轮机</h4>
+                                <div class="info-row">
+                                    <span>空化状态</span>
+                                    <span class="status-badge normal" id="cavitationStatus">正常</span>
+                                </div>
+                                <div class="info-row">
+                                    <span>最大空化强度</span>
+                                    <span id="maxCavitation">0.12</span>
+                                </div>
+                                <div class="info-row">
+                                    <span>最大振动</span>
+                                    <span id="maxVibration">0.08 g</span>
+                                </div>
+                                <div class="info-row">
+                                    <span>剩余寿命</span>
+                                    <span id="remainingLife">98.5%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="blade-tooltip" id="bladeTooltip"></div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="waterfall-view">
+                    <div class="waterfall-container">
+                        <div class="waterfall-header">
+                            <select id="sensorSelect">
+                                <option value="hydrophone_0">蜗壳进口 - 水听器1</option>
+                            </select>
+                            <div class="freq-range">
+                                <span>频率范围: 0 - <span id="freqMax">25600</span> Hz</span>
+                            </div>
+                        </div>
+                        <canvas id="waterfallCanvas"></canvas>
+                        <div class="waterfall-controls">
+                            <button id="pauseBtn">暂停</button>
+                            <button id="clearBtn">清除</button>
+                            <span class="time-info">时间跨度: <span id="timeSpan">60</span>s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="alarm-view">
+                    <div class="alarm-container">
+                        <div class="alarm-header">
+                            <h3>告警信息</h3>
+                            <div class="alarm-filters">
+                                <button class="filter-btn active" data-filter="all">全部</button>
+                                <button class="filter-btn" data-filter="active">活动</button>
+                                <button class="filter-btn" data-filter="acknowledged">已确认</button>
+                            </div>
+                        </div>
+                        <div class="alarm-list" id="alarmList"></div>
+                    </div>
                 </div>
             </main>
 
-            <aside class="right-panel" id="detail-panel" style="display: none;">
-                <div class="panel-header">
-                    <h3 id="detail-title">井详情</h3>
-                    <button class="close-btn" onclick="closeDetailPanel()">×</button>
+            <aside class="right-panel">
+                <div class="panel-section">
+                    <h3>叶片详情</h3>
+                    <div class="blade-detail" id="bladeDetail">
+                        <p class="hint">点击叶片查看详细信息</p>
+                    </div>
                 </div>
-                <div class="panel-content" id="detail-content">
+                <div class="panel-section">
+                    <h3>空化强度趋势</h3>
+                    <canvas id="trendCanvas" width="300" height="150"></canvas>
+                </div>
+                <div class="panel-section">
+                    <h3>寿命评估</h3>
+                    <div class="life-assessment" id="lifeAssessment">
+                        <div class="life-gauge">
+                            <svg viewBox="0 0 100 100" class="gauge-svg">
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#1e3a5f" stroke-width="8"/>
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#00d4ff" stroke-width="8"
+                                    stroke-dasharray="251.2" stroke-dashoffset="3.77"
+                                    transform="rotate(-90 50 50)" id="lifeArc"/>
+                                <text x="50" y="45" text-anchor="middle" class="gauge-value" id="lifeValue">98.5%</text>
+                                <text x="50" y="65" text-anchor="middle" class="gauge-label">剩余寿命</text>
+                            </svg>
+                        </div>
+                        <div class="life-details">
+                            <div class="life-row">
+                                <span>累计损伤</span>
+                                <span id="cumulativeDamage">0.015</span>
+                            </div>
+                            <div class="life-row">
+                                <span>当前损伤率</span>
+                                <span id="damageRate">1.2e-6 /h</span>
+                            </div>
+                            <div class="life-row">
+                                <span>预计剩余时间</span>
+                                <span id="remainingTime">8.5 年</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </aside>
         </div>
+
+        <div class="modal" id="bladeModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">叶片详情</h3>
+                    <button class="close-btn" id="closeModal">&times;</button>
+                </div>
+                <div class="modal-body" id="modalBody"></div>
+            </div>
+        </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/map.js"></script>
-    <script src="js/charts.js"></script>
-    <script src="js/app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+    <script src="js/turbine_viewer.js"></script>
+    <script src="js/waterfall_chart.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

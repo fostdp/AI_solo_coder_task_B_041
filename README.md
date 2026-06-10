@@ -1,428 +1,275 @@
-# 智慧油田注水开发动态调控系统
+# 大型水电站水轮机空化噪声监测与寿命评估系统
 
 ## 项目概述
 
-本系统是一套完整的智慧油田注水开发动态调控全栈应用，实现油田注水井和采油井的实时数据采集、可视化展示、智能调配优化和告警管理。
+本系统是一套完整的水轮机空化噪声监测与寿命评估全栈应用，专为大型水电站设计。系统通过布设的水听器和加速度计实时采集空化噪声和振动数据，基于先进的信号处理和机器学习算法实现空化状态在线识别与叶片疲劳寿命评估。
 
-### 业务场景
-- **注水井**：300口，每日上报注水量、注水压力、吸水指数
-- **采油井**：500口，每日上报产液量、产油量、含水率、动液面
-- **数据传输**：4G DTU通过MQTT协议上报
-- **核心目标**：基于注采平衡和水驱特征曲线，优化日注水量，减缓含水率上升，最大化产油量
-
----
-
-## 技术架构
+## 系统架构
 
 ```
-┌─────────────────┐    MQTT    ┌─────────────────┐    HTTP    ┌─────────────────┐
-│  4G DTU 模拟器  │───────────►│  SpringBoot 后端│◄───────────│   Web 前端      │
-│  (Python)       │            │  (Java 17)      │            │  (Canvas+Leaflet)│
-└─────────────────┘            └────────┬────────┘            └─────────────────┘
+┌─────────────────┐     UDP     ┌─────────────────┐     HTTP      ┌─────────────────┐
+│  PXI 采集模拟器 │ ─────────→ │  C++ 后端服务   │ ─────────→  │  WebGL 前端      │
+│  (pxi_simulator)│  数据流    │  (数据处理)     │   REST API  │  (可视化监控)    │
+└─────────────────┘            └────────┬────────┘              └─────────────────┘
                                         │
                                         ▼
                               ┌─────────────────┐
-                              │ PostgreSQL      │
-                              │  + PostGIS      │
+                              │  ClickHouse DB  │
+                              │  (时序数据存储) │
                               └─────────────────┘
 ```
 
-### 核心技术栈
+## 主要功能
 
-#### 后端
-- **框架**：Spring Boot 3.2.0
-- **ORM**：Spring Data JPA + Hibernate Spatial 6.4.0
-- **空间计算**：JTS (Java Topology Suite) 1.19.0
-- **优化算法**：Apache Commons Math 3.6.1 (Simplex线性规划)
-- **消息队列**：Eclipse Paho MQTT Client
-- **数据库**：PostgreSQL 14+ + PostGIS 3.2+
-- **定时任务**：Spring @Scheduled
+### 1. 数据采集与传输
+- 支持6台混流式水轮机，每台12个水听器 + 8个加速度计
+- 1ms采样间隔，水听器51.2kHz采样率，加速度计25.6kHz采样率
+- UDP高速数据流传输，支持128采样点/包
+- 多线程接收与处理，无锁队列保证高性能
 
-#### 前端
-- **地图框架**：Leaflet 1.9.4
-- **绘制引擎**：HTML5 Canvas
-- **图表库**：Chart.js 4.4.0
-- **HTTP客户端**：Axios
-- **样式**：原生CSS3
+### 2. 信号处理与特征提取
+- FFT频谱分析（FFTW3加速）
+- 小波包变换（db4小波，5级分解，32个频带）
+- 频谱特征提取：峰值频率、RMS值、峰值因子、峭度、偏度、谱质心等
+- 小波包特征：各频带能量、能量比、能量熵
 
-#### 模拟器
-- **语言**：Python 3.8+
-- **MQTT客户端**：paho-mqtt
+### 3. 空化状态在线识别
+- **孤立森林算法**：100棵树，子采样256个样本，基于路径长度计算异常分数
+- **深度自编码器**：32维输入→16维隐藏→8维编码，基于重构误差检测异常
+- **集成学习**：两种模型加权平均，提高检测准确率
+- 空化阶段分类：正常(<0.3)、初生(0.3-0.6)、临界(0.6-0.8)、发展(>0.8)
 
----
+### 4. 叶片疲劳寿命评估
+- **雨流计数法**：四点法识别应力循环
+- **Goodman修正**：考虑平均应力对疲劳寿命的影响
+- **Miner线性累积损伤理论**：D = Σ(ni/Ni)
+- 剩余寿命估算：基于历史损伤速率预测
 
-## 项目结构
+### 5. 告警系统
+- 空化强度超限告警
+- 叶片振动超标告警
+- 寿命预警
+- IEC 61850协议推送至监控系统
+- 智能检修建议生成
+- 告警抑制与确认机制
+
+### 6. 可视化前端
+- **WebGL水轮机剖面图**：蜗壳、导叶、转轮、尾水管三维模型
+- **空化强度云图**：颜色映射叠加在转轮叶片上
+- **瀑布图**：噪声频谱实时滚动显示
+- **交互功能**：点击叶片查看历史趋势和损伤详情
+- **告警面板**：实时告警展示与管理
+
+## 目录结构
 
 ```
-AI_solo_coder_task_A_035/
-├── database/
-│   └── init_schema.sql          # PostgreSQL+PostGIS数据库初始化脚本
-├── backend/
-│   ├── pom.xml                  # Maven配置
-│   └── src/main/
-│       ├── resources/
-│       │   └── application.yml  # 应用配置文件
-│       └── java/com/oilfield/
-│           ├── SmartWaterFloodingApplication.java
-│           ├── entity/          # 实体类（7个）
-│           ├── repository/      # 数据访问层（7个）
-│           ├── service/         # 业务逻辑层
-│           │   ├── AllocationOptimizationService.java  # 调配优化核心
-│           │   ├── AlarmService.java                   # 告警服务
-│           │   ├── BlockSummaryService.java            # 区块汇总
-│           │   └── MqttDataListener.java               # MQTT数据监听
-│           └── controller/      # REST API控制层（6个）
-├── frontend/
-│   ├── index.html               # 主页面
+AI_solo_coder_task_A_041/
+├── backend/                    # C++后端代码
+│   ├── include/                # 头文件
+│   │   ├── config.h            # 配置管理
+│   │   ├── data_structures.h   # 数据结构定义
+│   │   ├── udp_server.h        # UDP服务器
+│   │   ├── clickhouse_client.h # ClickHouse客户端
+│   │   ├── signal_processor.h  # 信号处理器
+│   │   ├── cavitation_detector.h  # 空化检测器
+│   │   ├── life_assessor.h     # 寿命评估器
+│   │   ├── alarm_manager.h     # 告警管理器
+│   │   ├── api_server.h        # API服务器
+│   │   └── data_pipeline.h     # 数据管道
+│   ├── src/                    # 源文件
+│   │   ├── main.cpp            # 主程序入口
+│   │   ├── config.cpp
+│   │   ├── udp_server.cpp
+│   │   ├── clickhouse_client.cpp
+│   │   ├── signal_processor.cpp
+│   │   ├── cavitation_detector.cpp
+│   │   ├── life_assessor.cpp
+│   │   ├── alarm_manager.cpp
+│   │   ├── api_server.cpp
+│   │   └── data_pipeline.cpp
+│   └── CMakeLists.txt          # 构建配置
+├── frontend/                   # 前端代码
+│   ├── index.html              # 主页面
 │   ├── css/
-│   │   └── style.css            # 样式文件
+│   │   └── style.css           # 样式文件
 │   └── js/
-│       ├── config.js            # 配置文件
-│       ├── api.js               # API调用封装
-│       ├── map.js               # 地图管理
-│       ├── charts.js            # 图表管理
-│       └── app.js               # 主应用逻辑
-├── simulator/
-│   ├── dtu_simulator.py         # 4G DTU模拟器
-│   └── requirements.txt         # Python依赖
-└── README.md                    # 本文档
+│       ├── turbine_viewer.js   # WebGL水轮机视图
+│       ├── waterfall_chart.js  # 瀑布图组件
+│       └── main.js             # 主逻辑
+├── simulator/                  # 模拟器
+│   └── pxi_simulator.py        # PXI采集模拟器
+├── clickhouse/                 # 数据库
+│   └── init.sql                # 初始化脚本
+├── config/                     # 配置文件
+│   └── config.json             # 系统配置
+└── README.md                   # 本文件
 ```
 
----
+## 快速开始
 
-## 核心功能模块
+### 1. 环境要求
 
-### 1. 数据库设计
+**后端依赖：**
+- C++17 编译器 (GCC 7+ / Clang 5+ / MSVC 2017+)
+- CMake 3.10+
+- FFTW3 (可选，用于FFT加速)
+- libcurl (可选，用于ClickHouse HTTP接口)
+- jsoncpp (可选，用于JSON解析)
+- pthread (Linux) / WS2_32 (Windows)
 
-#### 核心数据表
-| 表名 | 说明 | 关键字段 |
-|------|------|----------|
-| `wells` | 井基础信息 | well_id, well_type, location(Point), block_name, design_pressure |
-| `water_injection_data` | 注水井日数据 | water_volume, injection_pressure, absorption_index |
-| `production_data` | 采油井日数据 | fluid_volume, oil_volume, water_cut, fluid_level |
-| `injection_production_relation` | 注采对应关系 | injection_well_id, production_well_id, effectiveness_type, effectiveness_degree |
-| `allocation_suggestion` | 调配建议 | current_water_volume, suggested_water_volume, adjustment_direction |
-| `alarms` | 告警信息 | alarm_level, alarm_type, alarm_message, acknowledged |
-| `block_daily_summary` | 区块日汇总 | daily_oil_production, daily_water_injection, comprehensive_water_cut |
-| `water_flood_curve` | 水驱曲线 | cumulative_water_injection, cumulative_oil_production, curve_slope |
+**前端依赖：**
+- 现代浏览器（支持WebGL）
+- gl-matrix.js（已通过CDN引入）
 
-#### 空间特性
-- PostGIS Geometry类型存储井位坐标（Point, SRID=4326）
-- 空间索引加速地理位置查询
-- 支持空间距离计算、缓冲区分析
+**数据库：**
+- ClickHouse 21.8+
 
-### 2. 注水调配优化模型
+### 2. 数据库初始化
 
-#### 算法原理
-基于**注采平衡原理**和**水驱特征曲线**，使用**线性规划（单纯形法）**求解最优解。
-
-#### 水驱特征曲线
-```
-lg(Lp) = a + b * lg(Np)
-其中：
-- Lp: 累计产液量
-- Np: 累计产油量
-- a, b: 回归系数
-```
-
-#### 目标函数
-```
-Maximize: Σ(Wi * Ki) - λ * Σ(ΔWi)
-约束条件：
-- Σ(Wi) = W_total （注采平衡）
-- Wi_min ≤ Wi ≤ Wi_max （单井上下限）
-- ΔWi ≤ 0.2 * Wi_current （增幅≤20%）
-- ΔWi ≥ -0.3 * Wi_current （降幅≤30%）
-```
-
-### 3. 两级告警系统
-
-| 告警级别 | 触发条件 | 告警类型 | 推送方式 |
-|---------|----------|----------|----------|
-| **一级（水淹预警）** | 采油井含水率月上升 > 5% | WATER_CUT_RISE | MQTT + 前端展示 |
-| **二级（井筒异常）** | 注水井压力 > 设计压力 * 80% | PRESSURE_ANOMALY | MQTT + 前端展示 |
-
-### 4. 前端可视化
-
-#### 井位绘制
-- **注水井**：蓝色圆圈，带"注"字标识
-- **采油井**：红色三角，带"采"字标识
-- **注采连线**：颜色根据受效程度
-  - 绿色：高效受效（>70%）
-  - 黄色：中等受效（40%-70%）
-  - 红色：无效受效（<40%）
-
-#### 详情面板
-点击井位弹出，包含：
-- 井基础信息
-- 近90天生产趋势曲线（Chart.js）
-- 注采对应分析图
-- 最新调配建议（注水井）
-- 注采对应关系列表
-
-#### 核心指标
-- 区块日产油量（t）
-- 区块日注水量（m³）
-- 综合含水率（%）
-
----
-
-## 部署说明
-
-### 1. 数据库部署
-
-#### 系统要求
-- PostgreSQL 14+
-- PostGIS 3.2+
-
-#### 初始化步骤
 ```bash
-# 1. 创建数据库
-createdb -U postgres oilfield_db
+# 启动ClickHouse服务
+clickhouse-server --config-file=/etc/clickhouse-server/config.xml &
 
-# 2. 启用PostGIS扩展
-psql -U postgres -d oilfield_db -c "CREATE EXTENSION postgis;"
-
-# 3. 执行初始化脚本
-psql -U postgres -d oilfield_db -f database/init_schema.sql
+# 执行初始化脚本
+clickhouse-client --multiquery < clickhouse/init.sql
 ```
 
-### 2. 后端部署
+### 3. 后端编译
 
-#### 系统要求
-- JDK 17+
-- Maven 3.8+
-
-#### 配置文件
-修改 `backend/src/main/resources/application.yml`：
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/oilfield_db
-    username: postgres
-    password: your_password
-
-mqtt:
-  broker: tcp://localhost:1883
-  username: admin
-  password: admin
-```
-
-#### 启动命令
 ```bash
 cd backend
-mvn clean package
-java -jar target/smart-water-flooding-1.0.0.jar
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+
+# 运行
+./turbine_monitor -c ../../config/config.json
 ```
 
-### 3. MQTT Broker部署
-使用EMQX或Mosquitto：
-```bash
-# Docker方式启动EMQX
-docker run -d --name emqx -p 1883:1883 -p 8083:8083 -p 8883:8883 emqx/emqx:5.0
-```
+### 4. 启动模拟器
 
-### 4. 前端部署
-
-#### 系统要求
-- Node.js 16+ 或任意HTTP服务器
-
-#### 启动方式
-```bash
-# 方式1：使用Python启动
-cd frontend
-python -m http.server 8080
-
-# 方式2：使用Nginx
-# 将frontend目录复制到nginx/html下
-```
-
-访问地址：`http://localhost:8080`
-
-### 5. DTU模拟器部署
-
-#### 安装依赖
 ```bash
 cd simulator
-pip install -r requirements.txt
+pip install numpy
+python3 pxi_simulator.py -H 127.0.0.1 -p 9000
 ```
 
-#### 运行模式
+### 5. 启动前端
 
-**单日数据上报**：
 ```bash
-python dtu_simulator.py --mode daily --end-date 2024-01-01
+cd frontend
+python3 -m http.server 8000
+
+# 浏览器访问 http://localhost:8000
 ```
 
-**历史数据回填**：
-```bash
-python dtu_simulator.py --mode backfill --start-date 2024-01-01 --end-date 2024-03-31 --speed 5.0
+## 核心技术指标
+
+| 指标 | 数值 |
+|------|------|
+| 监测机组数 | 6台 |
+| 每台水听器 | 12个 |
+| 每台加速度计 | 8个 |
+| 采样率（水听器） | 51.2 kHz |
+| 采样率（加速度计） | 25.6 kHz |
+| 上报间隔 | 1 ms |
+| 数据包速率 | 120,000 包/秒 |
+| 数据吞吐量 | ~120 Mbps |
+| 处理延迟 | < 10 ms |
+| 叶片数/每台 | 15个 |
+
+## ClickHouse 表结构
+
+系统设计了11张核心表和2个物化视图：
+
+- `raw_sensor_data` - 原始传感器数据（TTL 30天）
+- `spectrum_features` - 频谱特征（TTL 90天）
+- `wavelet_features` - 小波包特征（TTL 90天）
+- `cavitation_state` - 空化状态识别结果（TTL 1年）
+- `blade_stress` - 叶片应力计算结果（TTL 1年）
+- `life_assessment` - 寿命评估结果（TTL 3年）
+- `alarm_logs` - 告警记录（TTL 3年）
+- `turbine_config` - 水轮机配置
+- `sensor_config` - 传感器配置
+- `cavitation_intensity_1s_table` - 1秒聚合（物化视图）
+- `cavitation_damage_daily_table` - 日损伤累计（物化视图）
+
+## API 接口
+
+| 接口 | 方法 | 描述 |
+|------|------|------|
+| `/api/turbines` | GET | 获取所有水轮机列表 |
+| `/api/turbine/detail` | GET | 获取水轮机详情 |
+| `/api/cavitation` | GET | 获取空化状态数据 |
+| `/api/life` | GET | 获取寿命评估数据 |
+| `/api/spectrum` | GET | 获取频谱数据 |
+| `/api/waterfall` | GET | 获取瀑布图数据 |
+| `/api/alarms/active` | GET | 获取活跃告警 |
+| `/api/alarms/acknowledge` | POST | 确认告警 |
+| `/api/alarms/suppress` | POST | 抑制告警 |
+| `/api/status` | GET | 获取系统状态 |
+
+## 关键算法
+
+### 空化检测算法
+
+```
+异常分数 = 0.5 * IF_score + 0.5 * AE_reconstruction_error
+
+IF_score = 2^(-avgPathLength / cFactor(n))
+AE_error = MSE(original, reconstructed)
+
+阈值分类:
+  < 0.3 → 正常
+0.3-0.6 → 初生空化
+0.6-0.8 → 临界空化
+  > 0.8 → 发展空化
 ```
 
-**实时模拟**：
-```bash
-python dtu_simulator.py --mode realtime
+### 寿命评估算法
+
 ```
+雨流计数 → 应力循环识别
+Goodman修正 → σ_a' = σ_a / (1 - σ_m / σ_uts)
+Miner损伤 → D = Σ(ni / Ni)
+Ni = k * (Δσ)^(-m)
+剩余寿命 = (1 - D) / (dD/dt)
+```
+
+## 性能优化
+
+1. **多线程架构**：1个接收线程 + 8个处理线程
+2. **无锁队列**：TBB并发队列实现高效数据传递
+3. **批量写入**：ClickHouse批量1000条或1秒自动刷新
+4. **FFTW3加速**：快速傅里叶变换性能优化
+5. **SIMD指令**：编译器自动向量化
+6. **内存池**：减少内存分配开销
+7. **TTL策略**：自动清理过期数据
+8. **物化视图**：预聚合常用查询
+
+## 监控与运维
+
+系统提供完整的运行状态监控：
+- 实时统计：接收包数、处理包数、队列长度、处理延迟
+- 日志分级：DEBUG/INFO/WARNING/ERROR
+- 健康检查接口：`/api/status`
+- 内置性能计数器
+
+## 扩展计划
+
+- [ ] 支持更多传感器类型（压力、温度等）
+- [ ] 深度学习模型在线训练
+- [ ] 数字孪生集成
+- [ ] 多电站集中监控
+- [ ] 移动端APP
+- [ ] 边缘计算节点支持
+
+## 技术支持
+
+如有问题，请联系系统运维团队。
 
 ---
 
-## REST API 接口
-
-### 井信息管理
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/wells` | 获取井列表 |
-| GET | `/api/wells/{id}` | 获取单井详情 |
-| GET | `/api/wells/{id}/trend?days=90` | 获取井生产趋势 |
-| GET | `/api/wells/blocks` | 获取区块列表 |
-
-### 生产数据
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/data/report` | 生产数据上报（MQTT同时支持） |
-| GET | `/api/data/injection/latest` | 获取最新注水数据 |
-| GET | `/api/data/production/latest` | 获取最新采油数据 |
-
-### 区块汇总
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/summary/core-indicators?block={block}` | 获取核心指标 |
-| GET | `/api/summary/history?days=30` | 获取历史汇总 |
-
-### 告警管理
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/alarms` | 获取告警列表 |
-| PUT | `/api/alarms/{id}/acknowledge` | 确认告警 |
-| POST | `/api/alarms/check` | 手动触发告警检查 |
-
-### 调配优化
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/allocation/latest` | 获取最新调配建议 |
-| POST | `/api/allocation/run` | 手动执行调配优化 |
-| GET | `/api/allocation/history` | 获取历史调配建议 |
-
-### 注采关系
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/relations/map-data` | 获取地图连线数据 |
-| GET | `/api/relations/well/{wellId}` | 获取井的注采关系 |
-
----
-
-## 定时任务配置
-
-| 任务 | 频率 | 说明 |
-|------|------|------|
-| 区块日汇总 | 每日 00:10 | 计算上一日区块汇总数据 |
-| 告警检查 | 每日 08:00 | 检查两级告警条件 |
-| 调配优化 | 每周一 02:00 | 生成周度注水调配建议 |
-
-可在 `application.yml` 中配置：
-```yaml
-scheduling:
-  enabled: true
-  summary-cron: "0 10 0 * * ?"
-  alarm-cron: "0 0 8 * * ?"
-  allocation-cron: "0 0 2 ? * MON"
-```
-
----
-
-## 数据格式
-
-### MQTT数据上报格式
-
-**主题**：`oilfield/well/data`
-
-**注水井数据**：
-```json
-{
-  "wellId": "Z-0001",
-  "wellType": "INJECTION",
-  "reportTime": "2024-01-01T08:00:00",
-  "waterVolume": 125.5,
-  "injectionPressure": 22.3,
-  "absorptionIndex": 4.2
-}
-```
-
-**采油井数据**：
-```json
-{
-  "wellId": "C-0001",
-  "wellType": "PRODUCTION",
-  "reportTime": "2024-01-01T08:00:00",
-  "fluidVolume": 85.2,
-  "oilVolume": 12.8,
-  "waterCut": 85.0,
-  "fluidLevel": 1250.5
-}
-```
-
-### MQTT告警推送格式
-
-**主题**：`oilfield/alarm`
-
-```json
-{
-  "id": 1,
-  "wellId": "C-0001",
-  "alarmLevel": "LEVEL_1",
-  "alarmType": "WATER_CUT_RISE",
-  "alarmMessage": "采油井C-0001含水率月上升8.5%，超过5%阈值",
-  "alarmTime": "2024-01-01T08:00:00",
-  "threshold": 5.0,
-  "actualValue": 8.5
-}
-```
-
----
-
-## 常见问题
-
-### 1. 数据库连接失败
-- 检查PostgreSQL服务是否启动
-- 确认PostGIS扩展已安装
-- 验证用户名密码和端口配置
-
-### 2. MQTT连接失败
-- 检查EMQX/Mosquitto服务是否启动
-- 确认防火墙已开放1883端口
-- 验证MQTT用户名密码配置
-
-### 3. 调配优化执行失败
-- 检查是否有足够的历史数据（建议>30天）
-- 查看日志确认线性规划求解是否收敛
-- 确认井数据完整性
-
-### 4. 前端地图不显示
-- 检查Leaflet CDN是否可访问
-- 确认浏览器控制台无CORS错误
-- 检查后端API是否正常响应
-
----
-
-## 性能优化建议
-
-1. **数据库层**：
-   - 为日期字段创建B-tree索引
-   - 为空间字段创建GiST索引
-   - 定期VACUUM ANALYZE优化查询性能
-
-2. **后端层**：
-   - 使用Redis缓存热点数据（井列表、最新数据）
-   - 批量操作减少数据库交互
-   - 异步处理MQTT数据上报
-
-3. **前端层**：
-   - 数据按需加载，避免一次性加载所有历史数据
-   - Canvas绘制使用requestAnimationFrame
-   - 图表数据抽样展示
-
----
-
-## License
-
-MIT License
+**版本**: 1.0.0  
+**更新日期**: 2026-06-10  
+**适用场景**: 大型混流式水轮机组空化监测与寿命评估
