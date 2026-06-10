@@ -44,6 +44,10 @@ find_library(PROMETHEUS_LIBRARY NAMES prometheus-cpp-pull prometheus-cpp-core)
 include_directories(
     ${CMAKE_SOURCE_DIR}/common/include
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/modules/cavitation_controller/include
+    ${CMAKE_SOURCE_DIR}/modules/robot_planner/include
+    ${CMAKE_SOURCE_DIR}/modules/plant_scheduler/include
+    ${CMAKE_SOURCE_DIR}/modules/acoustic_fingerprint/include
     ${FFTW3_INCLUDE_DIR}
     ${CLICKHOUSE_INCLUDE_DIR}
     ${JSON_INCLUDE_DIR}
@@ -96,6 +100,58 @@ add_library(algo STATIC
 target_include_directories(algo PUBLIC
     ${CMAKE_SOURCE_DIR}/include
 )
+
+# ============================================================
+# Module: cavitation_controller (MPC联动控制+前馈补偿+独立线程)
+# ============================================================
+add_library(cavitation_controller STATIC
+    modules/cavitation_controller/src/cavitation_controller.cpp
+)
+target_include_directories(cavitation_controller PUBLIC
+    ${CMAKE_SOURCE_DIR}/modules/cavitation_controller/include
+    ${CMAKE_SOURCE_DIR}/common/include
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(cavitation_controller PUBLIC common Threads::Threads)
+
+# ============================================================
+# Module: robot_planner (RRT*路径规划+动力定位+轨迹生成)
+# ============================================================
+add_library(robot_planner STATIC
+    modules/robot_planner/src/robot_planner.cpp
+)
+target_include_directories(robot_planner PUBLIC
+    ${CMAKE_SOURCE_DIR}/modules/robot_planner/include
+    ${CMAKE_SOURCE_DIR}/common/include
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(robot_planner PUBLIC common Threads::Threads)
+
+# ============================================================
+# Module: plant_scheduler (MILP优化调度+最小稳定时间+异步求解)
+# ============================================================
+add_library(plant_scheduler STATIC
+    modules/plant_scheduler/src/plant_scheduler.cpp
+)
+target_include_directories(plant_scheduler PUBLIC
+    ${CMAKE_SOURCE_DIR}/modules/plant_scheduler/include
+    ${CMAKE_SOURCE_DIR}/common/include
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(plant_scheduler PUBLIC common Threads::Threads)
+
+# ============================================================
+# Module: acoustic_fingerprint (GPU特征提取+降噪AE+度量学习)
+# ============================================================
+add_library(acoustic_fingerprint STATIC
+    modules/acoustic_fingerprint/src/acoustic_fingerprint.cpp
+)
+target_include_directories(acoustic_fingerprint PUBLIC
+    ${CMAKE_SOURCE_DIR}/modules/acoustic_fingerprint/include
+    ${CMAKE_SOURCE_DIR}/common/include
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(acoustic_fingerprint PUBLIC common Threads::Threads)
 
 # ============================================================
 # Service 1: PXI Collector (高速采集 + 预处理)
@@ -174,7 +230,7 @@ add_executable(turbine_controller
     services/turbine_controller/main.cpp
     src/turbine_mpc_controller.cpp
 )
-target_link_libraries(turbine_controller PRIVATE common algo ${THIRD_PARTY_LIBS})
+target_link_libraries(turbine_controller PRIVATE common algo cavitation_controller ${THIRD_PARTY_LIBS})
 set_target_properties(turbine_controller PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/turbine_controller
 )
@@ -186,7 +242,7 @@ add_executable(robot_planner
     services/robot_planner/main.cpp
     src/robot_repair_planner.cpp
 )
-target_link_libraries(robot_planner PRIVATE common algo ${THIRD_PARTY_LIBS})
+target_link_libraries(robot_planner PRIVATE common algo robot_planner ${THIRD_PARTY_LIBS})
 set_target_properties(robot_planner PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/robot_planner
 )
@@ -198,7 +254,7 @@ add_executable(unit_scheduler
     services/unit_scheduler/main.cpp
     src/unit_scheduler.cpp
 )
-target_link_libraries(unit_scheduler PRIVATE common algo ${THIRD_PARTY_LIBS})
+target_link_libraries(unit_scheduler PRIVATE common algo plant_scheduler ${THIRD_PARTY_LIBS})
 set_target_properties(unit_scheduler PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/unit_scheduler
 )
@@ -210,7 +266,7 @@ add_executable(acoustic_diagnosis
     services/acoustic_diagnosis/main.cpp
     src/acoustic_diagnosis.cpp
 )
-target_link_libraries(acoustic_diagnosis PRIVATE common algo ${THIRD_PARTY_LIBS})
+target_link_libraries(acoustic_diagnosis PRIVATE common algo acoustic_fingerprint ${THIRD_PARTY_LIBS})
 set_target_properties(acoustic_diagnosis PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/acoustic_diagnosis
 )
@@ -225,6 +281,12 @@ install(DIRECTORY ../tests DESTINATION . OPTIONAL)
 # Print summary
 message(STATUS "==================================================")
 message(STATUS "  Turbine Monitor Microservices Build Targets:")
+message(STATUS "  -- Independent Modules --")
+message(STATUS "    [M1] cavitation_controller  -> MPC+前馈补偿+独立线程")
+message(STATUS "    [M2] robot_planner          -> RRT*+动力定位+轨迹生成")
+message(STATUS "    [M3] plant_scheduler        -> MILP+最小稳定时间+异步")
+message(STATUS "    [M4] acoustic_fingerprint   -> GPU特征提取+降噪AE")
+message(STATUS "  -- Services --")
 message(STATUS "    [1/11] pxi_collector         -> UDP采集+FFT/小波")
 message(STATUS "    [2/11] cavitation_detector   -> AE/IF+工况归一化")
 message(STATUS "    [3/11] fatigue_evaluator     -> 四点法雨流+Miner")

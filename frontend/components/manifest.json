@@ -1,0 +1,36 @@
+{
+  "name": "turbine-monitor-frontend",
+  "version": "2.0.0",
+  "description": "水轮机空化监测与寿命评估系统前端组件集",
+  "components": {
+    "cavitation_controller": {
+      "file": "components/mpc_control_tab.js",
+      "class": "MPCControlTab",
+      "container": "controlTabContainer",
+      "endpoint": "/api/turbine_controller",
+      "features": ["mpc_solve", "feedforward", "thread_safe"]
+    },
+    "robot_planner": {
+      "file": "components/robot_repair_tab.js",
+      "class": "RobotRepairTab",
+      "container": "robotTabContainer",
+      "endpoint": "/api/robot_planner",
+      "features": ["rrt_star", "dynamic_positioning", "trajectory_gen"]
+    },
+    "plant_scheduler": {
+      "file": "components/unit_schedule_tab.js",
+      "class": "UnitScheduleTab",
+      "container": "scheduleTabContainer",
+      "endpoint": "/api/unit_scheduler",
+      "features": ["milp", "min_stable_time", "async_schedule"]
+    },
+    "acoustic_fingerprint": {
+      "file": "components/acoustic_diagnosis_tab.js",
+      "class": "AcousticDiagnosisTab",
+      "container": "diagnosisTabContainer",
+      "endpoint": "/api/acoustic_diagnosis",
+      "features": ["gpu_extract", "denoise_ae", "metric_learning"]
+    }
+  },
+  "core": ["turbine_3d_viewer.js", "waterfall_chart.js", "blade_detail.js", "main.js"]
+}
