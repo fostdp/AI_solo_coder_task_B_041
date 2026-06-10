@@ -307,3 +307,202 @@ SELECT
     '2024-01-01',
     '2026-01-01'
 FROM numbers(1, 6) AS t, numbers(1, 8) AS s;
+
+-- =========================================
+-- 12. MPC水轮机调节控制日志表 (Feature 1)
+-- =========================================
+CREATE TABLE IF NOT EXISTS mpc_control_logs (
+    timestamp UInt64,
+    turbine_id UInt8,
+    control_mode Enum8('manual' = 0, 'efficiency_only' = 1, 'cavitation_safe' = 2, 'mpc_optimal' = 3),
+    cavitation_avoidance_enabled Bool,
+    guide_vane_opening_deg Float32,
+    target_power_mw Float32,
+    current_head_m Float32,
+    current_flow_m3s Float32,
+    predicted_efficiency Float32,
+    predicted_cavitation_risk Float32,
+    mpc_cost_value Float32,
+    control_signals Array(Float32),
+    horizon_states Array(Float32),
+    control_action_desc String
+) ENGINE = MergeTree()
+PARTITION BY toDate(timestamp / 1000)
+ORDER BY (turbine_id, timestamp)
+TTL toDateTime(timestamp / 1000) + INTERVAL 365 DAY
+SETTINGS index_granularity = 2048;
+
+-- =========================================
+-- 13. 水下机器人检修任务表 (Feature 2)
+-- =========================================
+CREATE TABLE IF NOT EXISTS robot_repair_tasks (
+    timestamp UInt64,
+    task_id UUID,
+    turbine_id UInt8,
+    robot_status Enum8('idle' = 0, 'planning' = 1, 'deploying' = 2, 'inspecting' = 3,
+                       'polishing' = 4, 'welding' = 5, 'returning' = 6, 'completed' = 7, 'fault' = 8),
+    repair_mode Enum8('inspection_only' = 0, 'polish' = 1, 'weld' = 2, 'polish_and_weld' = 3),
+    target_blade_ids Array(UInt8),
+    estimated_duration_ms UInt64,
+    total_repair_area_cm2 Float32,
+    total_weld_volume_cm3 Float32,
+    inspection_path Array(Float32),
+    polish_trajectory Array(Float32),
+    weld_trajectory Array(Float32),
+    blade_damage_map Array(Float32),
+    repair_sequence String,
+    robot_current_pos Array(Float32),
+    current_waypoint_idx UInt32,
+    completed_at UInt64,
+    expert_approved Bool DEFAULT 0,
+    approved_by String DEFAULT ''
+) ENGINE = ReplacingMergeTree(completed_at)
+PARTITION BY toYYYYMM(toDateTime(timestamp / 1000))
+ORDER BY (task_id, timestamp)
+TTL toDateTime(timestamp / 1000) + INTERVAL 1095 DAY;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS robot_task_daily_mv
+TO robot_task_daily_table
+AS SELECT
+    toDate(timestamp / 1000) AS date,
+    turbine_id,
+    robot_status,
+    count() AS task_count,
+    sum(total_repair_area_cm2) AS total_area,
+    avg(estimated_duration_ms) AS avg_duration
+FROM robot_repair_tasks
+GROUP BY date, turbine_id, robot_status;
+
+CREATE TABLE IF NOT EXISTS robot_task_daily_table (
+    date Date,
+    turbine_id UInt8,
+    robot_status UInt8,
+    task_count UInt64,
+    total_area Float32,
+    avg_duration Float64
+) ENGINE = AggregatingMergeTree()
+PARTITION BY date
+ORDER BY (date, turbine_id, robot_status)
+TTL date + INTERVAL 1095 DAY;
+
+-- =========================================
+-- 14. 全厂优化调度结果表 (Feature 3)
+-- =========================================
+CREATE TABLE IF NOT EXISTS plant_schedules (
+    timestamp UInt64,
+    schedule_id UInt8,
+    optimization_status Enum8('not_optimized' = 0, 'optimizing' = 1, 'converged' = 2,
+                              'partial_feasible' = 3, 'infeasible' = 4),
+    scheduling_horizon_s UInt64,
+    target_total_power_mw Float32,
+    current_total_power_mw Float32,
+    optimized_efficiency_pct Float32,
+    cavitation_risk_reduction_pct Float32,
+    unit_power_mw Array(Float32),
+    unit_efficiency Array(Float32),
+    unit_cavitation_risk Array(Float32),
+    unit_operating_hours Array(Float32),
+    mip_objective_value Float32,
+    constraint_slack Array(Float32),
+    schedule_note String,
+    executed Bool DEFAULT 0
+) ENGINE = MergeTree()
+PARTITION BY toDate(timestamp / 1000)
+ORDER BY (schedule_id, timestamp)
+TTL toDateTime(timestamp / 1000) + INTERVAL 730 DAY
+SETTINGS index_granularity = 1024;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS schedule_hourly_stats_mv
+TO schedule_hourly_stats_table
+AS SELECT
+    toStartOfHour(toDateTime(timestamp / 1000)) AS hour,
+    avg(optimized_efficiency_pct) AS avg_efficiency,
+    avg(cavitation_risk_reduction_pct) AS avg_cav_reduction,
+    avg(current_total_power_mw) AS avg_power,
+    sum(target_total_power_mw) AS total_target
+FROM plant_schedules
+WHERE optimization_status = 2
+GROUP BY hour;
+
+CREATE TABLE IF NOT EXISTS schedule_hourly_stats_table (
+    hour DateTime,
+    avg_efficiency Float64,
+    avg_cav_reduction Float64,
+    avg_power Float64,
+    total_target Float64
+) ENGINE = AggregatingMergeTree()
+PARTITION BY toDate(hour)
+ORDER BY hour
+TTL hour + INTERVAL 1095 DAY;
+
+-- =========================================
+-- 15. 声纹特征库与诊断结果表 (Feature 4)
+-- =========================================
+CREATE TABLE IF NOT EXISTS acoustic_patterns (
+    timestamp UInt64,
+    pattern_id UUID,
+    cavitation_type Enum8('unknown' = 0, 'cloud' = 1, 'sheet' = 2, 'super' = 3,
+                          'vortex' = 4, 'tip_leakage' = 5),
+    pattern_name String,
+    description String,
+    embedding Array(Float32),
+    centroid Array(Float32),
+    sample_count UInt32,
+    intra_cluster_variance Float32,
+    silhouette_score Float32,
+    is_verified_by_expert Bool,
+    expert_note String,
+    last_updated UInt64
+) ENGINE = ReplacingMergeTree(last_updated)
+ORDER BY (pattern_id, cavitation_type)
+TTL toDateTime(timestamp / 1000) + INTERVAL 1095 DAY;
+
+CREATE TABLE IF NOT EXISTS diagnosis_results (
+    timestamp UInt64,
+    turbine_id UInt8,
+    sensor_id UInt8,
+    cavitation_type Enum8('unknown' = 0, 'cloud' = 1, 'sheet' = 2, 'super' = 3,
+                          'vortex' = 4, 'tip_leakage' = 5),
+    diagnosis_status Enum8('pending' = 0, 'extracting' = 1, 'clustering' = 2,
+                           'matching' = 3, 'completed' = 4, 'needs_expert' = 5),
+    cluster_label UInt8,
+    is_known_pattern Bool,
+    feature_embedding Array(Float32),
+    pattern_similarity Array(Float32),
+    confidence_scores Array(Float32),
+    centroid_distance Float32,
+    silhouette_score Float32,
+    cluster_purity Float32,
+    cavitation_type_name String,
+    expert_note String,
+    analysis_latency_us UInt64
+) ENGINE = MergeTree()
+PARTITION BY toDate(timestamp / 1000)
+ORDER BY (turbine_id, sensor_id, timestamp)
+TTL toDateTime(timestamp / 1000) + INTERVAL 730 DAY
+SETTINGS index_granularity = 2048;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS diagnosis_daily_summary_mv
+TO diagnosis_daily_summary_table
+AS SELECT
+    toDate(timestamp / 1000) AS date,
+    cavitation_type,
+    is_known_pattern,
+    count() AS diagnosis_count,
+    avg(silhouette_score) AS avg_silhouette,
+    avg(centroid_distance) AS avg_distance
+FROM diagnosis_results
+WHERE diagnosis_status = 4
+GROUP BY date, cavitation_type, is_known_pattern;
+
+CREATE TABLE IF NOT EXISTS diagnosis_daily_summary_table (
+    date Date,
+    cavitation_type UInt8,
+    is_known_pattern Bool,
+    diagnosis_count UInt64,
+    avg_silhouette Float64,
+    avg_distance Float64
+) ENGINE = AggregatingMergeTree()
+PARTITION BY date
+ORDER BY (date, cavitation_type, is_known_pattern)
+TTL date + INTERVAL 1095 DAY;

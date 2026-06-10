@@ -31,6 +31,19 @@ public:
     void insertLifeAssessment(const LifeAssessment& assessment);
     void insertAlarmLog(const AlarmLog& alarm);
 
+    // Feature 1: MPC Control
+    void insertControlLog(const TurbineControlCommand& cmd);
+
+    // Feature 2: Robot Repair
+    void insertRobotTask(const RobotRepairTask& task);
+
+    // Feature 3: Unit Scheduler
+    void insertSchedule(const PlantSchedule& schedule);
+
+    // Feature 4: Acoustic Diagnosis
+    void insertAcousticPattern(const AcousticPattern& pattern);
+    void insertDiagnosisResult(const DiagnosisResult& result);
+
     void batchInsert();
     void startBatchWriter(uint32_t batchSize = 1000, uint32_t flushIntervalMs = 1000);
     void stopBatchWriter();

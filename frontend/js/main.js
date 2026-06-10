@@ -9,6 +9,10 @@ class TurbineMonitorApp {
         this.alarms = [];
         this.updateInterval = null;
         this.waterfallInterval = null;
+        this.mpcControlTab = null;
+        this.robotRepairTab = null;
+        this.unitScheduleTab = null;
+        this.acousticDiagnosisTab = null;
         
         this.init();
     }
@@ -17,10 +21,18 @@ class TurbineMonitorApp {
         this.initTurbineViewer();
         this.initWaterfallChart();
         this.initTrendChart();
+        this.initNewTabs();
         this.initEventListeners();
         this.loadTurbines();
         this.startDataUpdates();
         this.startTimeUpdate();
+    }
+
+    initNewTabs() {
+        this.mpcControlTab = new MPCControlTab(this);
+        this.robotRepairTab = new RobotRepairTab(this);
+        this.unitScheduleTab = new UnitScheduleTab(this);
+        this.acousticDiagnosisTab = new AcousticDiagnosisTab(this);
     }
 
     initTurbineViewer() {
@@ -92,6 +104,22 @@ class TurbineMonitorApp {
             this.startWaterfallUpdates();
         } else if (tabId === 'alarm-view') {
             this.loadAlarms();
+        } else if (tabId === 'control-view') {
+            const container = document.getElementById('controlTabContainer');
+            if (container) this.mpcControlTab.render(container);
+            setTimeout(() => this.mpcControlTab.resize(), 150);
+        } else if (tabId === 'robot-view') {
+            const container = document.getElementById('robotTabContainer');
+            if (container) this.robotRepairTab.render(container);
+            setTimeout(() => this.robotRepairTab.resize(), 150);
+        } else if (tabId === 'schedule-view') {
+            const container = document.getElementById('scheduleTabContainer');
+            if (container) this.unitScheduleTab.render(container);
+            setTimeout(() => this.unitScheduleTab.resize(), 150);
+        } else if (tabId === 'diagnosis-view') {
+            const container = document.getElementById('diagnosisTabContainer');
+            if (container) this.acousticDiagnosisTab.render(container);
+            setTimeout(() => this.acousticDiagnosisTab.resize(), 150);
         }
     }
 
@@ -113,7 +141,11 @@ class TurbineMonitorApp {
 
     generateMockTurbines() {
         this.turbines = [];
+        const modes = ['manual', 'efficiency', 'avoid_cav', 'mpc_optimal'];
         for (let i = 0; i < 6; i++) {
+            const guideVane = 30 + Math.random() * 40;
+            const targetPower = 600 + Math.random() * 200;
+            const mode = modes[Math.floor(Math.random() * 4)];
             this.turbines.push({
                 id: i,
                 name: `${i + 1}# 水轮机`,
@@ -123,7 +155,14 @@ class TurbineMonitorApp {
                 cavitationStage: Math.floor(Math.random() * 2),
                 maxCavitation: 0.1 + Math.random() * 0.3,
                 maxVibration: 0.05 + Math.random() * 0.15,
-                remainingLife: 95 + Math.random() * 5
+                remainingLife: 95 + Math.random() * 5,
+                control: {
+                    guide_vane: guideVane,
+                    power: targetPower,
+                    mode: mode,
+                    efficiency_pred: 85 + Math.random() * 10,
+                    cav_risk_pred: Math.random() * 0.8
+                }
             });
         }
     }
@@ -546,7 +585,75 @@ class TurbineMonitorApp {
 
     async startDataUpdates() {
         this.updateTurbineData();
-        this.updateInterval = setInterval(() => this.updateTurbineData(), 1000);
+        this.updateInterval = setInterval(() => {
+            this.updateTurbineData();
+            this.updateNewTabMockData();
+        }, 1000);
+    }
+
+    updateNewTabMockData() {
+        this.turbines.forEach(t => {
+            if (t.control) {
+                t.control.efficiency_pred = Math.max(80, Math.min(98, t.control.efficiency_pred + (Math.random() - 0.5) * 0.4));
+                t.control.cav_risk_pred = Math.max(0, Math.min(1, t.control.cav_risk_pred + (Math.random() - 0.5) * 0.04));
+            }
+        });
+        if (this.mpcControlTab && this.mpcControlTab.units) {
+            this.mpcControlTab.units.forEach((u, i) => {
+                const t = this.turbines[i];
+                if (t && t.control) {
+                    u.efficiency_pred = t.control.efficiency_pred;
+                    u.cav_risk_pred = t.control.cav_risk_pred;
+                }
+            });
+        }
+    }
+
+    async getControlStatus() {
+        try {
+            const response = await fetch(`${this.apiBase}/control/status`);
+            if (response.ok) return await response.json();
+        } catch (e) {}
+        return this.turbines.map(t => ({
+            id: t.id,
+            guide_vane: t.control?.guide_vane || 50,
+            power: t.control?.power || 700,
+            mode: t.control?.mode || 'mpc_optimal',
+            efficiency_pred: t.control?.efficiency_pred || 90,
+            cav_risk_pred: t.control?.cav_risk_pred || 0.3
+        }));
+    }
+
+    async getRobotTasks() {
+        try {
+            const response = await fetch(`${this.apiBase}/robot/tasks`);
+            if (response.ok) return await response.json();
+        } catch (e) {}
+        return null;
+    }
+
+    async getScheduleCurrent() {
+        try {
+            const response = await fetch(`${this.apiBase}/schedule/current`);
+            if (response.ok) return await response.json();
+        } catch (e) {}
+        return null;
+    }
+
+    async getDiagnosisPatterns() {
+        try {
+            const response = await fetch(`${this.apiBase}/diagnosis/patterns`);
+            if (response.ok) return await response.json();
+        } catch (e) {}
+        return null;
+    }
+
+    async getDiagnosisLatest(limit = 50) {
+        try {
+            const response = await fetch(`${this.apiBase}/diagnosis/latest?limit=${limit}`);
+            if (response.ok) return await response.json();
+        } catch (e) {}
+        return null;
     }
 
     async updateTurbineData() {

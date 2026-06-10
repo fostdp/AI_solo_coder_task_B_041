@@ -421,6 +421,31 @@ HttpResponse APIServer::handleRequest(const HttpRequest& request) {
         return getSystemStatus(request);
     }
 
+    if (request.method == "GET" && request.path.rfind("/api/robot/task/", 0) == 0) {
+        std::string taskId = request.path.substr(std::string("/api/robot/task/").size());
+        HttpRequest modifiedReq = request;
+        modifiedReq.params["taskId"] = taskId;
+        return getRobotTaskStatus(modifiedReq);
+    }
+    if (request.method == "POST" && request.path.rfind("/api/robot/plan/", 0) == 0) {
+        std::string turbineIdStr = request.path.substr(std::string("/api/robot/plan/").size());
+        HttpRequest modifiedReq = request;
+        modifiedReq.params["turbineId"] = turbineIdStr;
+        return triggerRobotPlan(modifiedReq);
+    }
+    if (request.method == "POST" && request.path.rfind("/api/robot/cancel/", 0) == 0) {
+        std::string taskId = request.path.substr(std::string("/api/robot/cancel/").size());
+        HttpRequest modifiedReq = request;
+        modifiedReq.params["taskId"] = taskId;
+        return cancelRobotTask(modifiedReq);
+    }
+    if (request.method == "POST" && request.path.rfind("/api/schedule/execute/", 0) == 0) {
+        std::string idStr = request.path.substr(std::string("/api/schedule/execute/").size());
+        HttpRequest modifiedReq = request;
+        modifiedReq.params["id"] = idStr;
+        return executeSchedule(modifiedReq);
+    }
+
     return {404, "application/json", jsonError("Not found", 404), {}};
 }
 
@@ -564,6 +589,15 @@ bool APIServer::start() {
     running_ = true;
     serverThread_ = std::thread(&APIServer::serverLoop, this);
 
+    registerHandler("/api/control/status", [this](const HttpRequest& req) { return getControlStatus(req); });
+    registerHandler("/api/control/command", [this](const HttpRequest& req) { return postControlCommand(req); });
+    registerHandler("/api/robot/tasks", [this](const HttpRequest& req) { return getRobotTasks(req); });
+    registerHandler("/api/schedule/current", [this](const HttpRequest& req) { return getCurrentSchedule(req); });
+    registerHandler("/api/schedule/run", [this](const HttpRequest& req) { return runScheduleOptimization(req); });
+    registerHandler("/api/diagnosis/patterns", [this](const HttpRequest& req) { return getAcousticPatterns(req); });
+    registerHandler("/api/diagnosis/latest", [this](const HttpRequest& req) { return getDiagnosisResults(req); });
+    registerHandler("/api/diagnosis/label", [this](const HttpRequest& req) { return labelPattern(req); });
+
     std::cout << "API Server started on " << host_ << ":" << port_ << std::endl;
     return true;
 }
@@ -584,6 +618,443 @@ void APIServer::stop() {
     if (serverThread_.joinable()) {
         serverThread_.join();
     }
+}
+
+std::string APIServer::controlStatusToJson(const DataProvider::TurbineControlStatus& c) {
+    Json::Value json;
+    json["turbine_id"] = c.turbine_id;
+    json["mode"] = static_cast<int>(c.mode);
+    json["cavitation_avoidance_enabled"] = c.cavitation_avoidance_enabled;
+    json["guide_vane"] = c.guide_vane_opening_deg;
+    json["target_power"] = c.target_power_mw;
+    json["current_head_m"] = c.current_head_m;
+    json["current_flow_m3s"] = c.current_flow_m3s;
+    json["efficiency_pred"] = c.predicted_efficiency;
+    json["cav_risk_pred"] = c.predicted_cavitation_risk;
+    json["mpc_cost_value"] = c.mpc_cost_value;
+    json["action_desc"] = c.action_desc;
+    json["timestamp"] = Json::Value::UInt64(c.timestamp);
+
+    Json::Value ctrlSignals(Json::arrayValue);
+    for (float s : c.control_signals) {
+        ctrlSignals.append(s);
+    }
+    json["control_signals"] = ctrlSignals;
+
+    Json::Value horizonStates(Json::arrayValue);
+    for (float h : c.horizon_states) {
+        horizonStates.append(h);
+    }
+    json["horizon_states"] = horizonStates;
+
+    Json::StreamWriterBuilder writer;
+    return Json::writeString(writer, json);
+}
+
+std::string APIServer::robotTaskToJson(const RobotRepairTask& t) {
+    Json::Value json;
+    json["timestamp"] = Json::Value::UInt64(t.timestamp);
+    json["turbine_id"] = t.turbine_id;
+    json["task_status"] = static_cast<int>(t.robot_status);
+    json["repair_mode"] = static_cast<int>(t.repair_mode);
+    json["estimated_duration_ms"] = Json::Value::UInt64(t.estimated_duration_ms);
+    json["total_repair_area_cm2"] = t.total_repair_area_cm2;
+    json["total_weld_volume_cm3"] = t.total_weld_volume_cm3;
+    json["repair_sequence"] = t.repair_sequence;
+    json["current_waypoint_idx"] = t.current_waypoint_idx;
+
+    Json::Value targetBlades(Json::arrayValue);
+    for (uint8_t b : t.target_blade_ids) {
+        targetBlades.append(b);
+    }
+    json["target_blades"] = targetBlades;
+
+    Json::Value robotPos(Json::arrayValue);
+    for (int i = 0; i < 3; i++) {
+        robotPos.append(t.robot_pos[i]);
+    }
+    json["robot_position"] = robotPos;
+
+    Json::Value waypoints(Json::arrayValue);
+    for (const auto& wp : t.inspection_path) {
+        Json::Value w;
+        w["x"] = wp.x; w["y"] = wp.y; w["z"] = wp.z;
+        w["orientation_w"] = wp.orientation_w;
+        w["orientation_x"] = wp.orientation_x;
+        w["orientation_y"] = wp.orientation_y;
+        w["orientation_z"] = wp.orientation_z;
+        w["speed_mm_s"] = wp.speed_mm_s;
+        w["dwell_time_s"] = wp.dwell_time_s;
+        w["action_type"] = wp.action_type;
+        waypoints.append(w);
+    }
+    json["trajectory_waypoints"] = waypoints;
+
+    Json::Value damageMap(Json::arrayValue);
+    for (float d : t.blade_damage_map) {
+        damageMap.append(d);
+    }
+    json["damage_heatmap"] = damageMap;
+
+    Json::StreamWriterBuilder writer;
+    return Json::writeString(writer, json);
+}
+
+std::string APIServer::scheduleToJson(const PlantSchedule& s) {
+    Json::Value json;
+    json["timestamp"] = Json::Value::UInt64(s.timestamp);
+    json["schedule_id"] = s.schedule_id;
+    json["status"] = static_cast<int>(s.status);
+    json["horizon_hours"] = static_cast<float>(s.horizon_s) / 3600.0f;
+    json["target_total_power_mw"] = s.target_total_power_mw;
+    json["current_total_power_mw"] = s.current_total_power_mw;
+    json["optimized_efficiency_pct"] = s.optimized_efficiency_pct;
+    json["cavitation_risk_reduction_pct"] = s.cavitation_risk_reduction_pct;
+    json["mip_objective_value"] = s.mip_objective_value;
+    json["gap"] = s.mip_objective_value > 0 ? (s.constraint_slack.size() > 0 ? s.constraint_slack[0] : 0.0f) : 0.0f;
+    json["converged"] = (s.status == ScheduleStatus::CONVERGED);
+    json["note"] = s.note;
+
+    Json::Value units(Json::arrayValue);
+    for (const auto& u : s.units) {
+        Json::Value unit;
+        unit["turbine_id"] = u.turbine_id;
+        unit["is_active"] = u.is_active;
+        unit["power"] = u.power_mw;
+        unit["efficiency"] = u.efficiency_pct;
+        unit["cav_risk"] = u.cavitation_risk;
+        unit["operating_hours"] = u.operating_hours;
+        unit["startup_cost"] = u.startup_cost;
+        unit["shutdown_cost"] = u.shutdown_cost;
+        units.append(unit);
+    }
+    json["units"] = units;
+
+    Json::Value slack(Json::arrayValue);
+    for (float v : s.constraint_slack) {
+        slack.append(v);
+    }
+    json["constraint_slack"] = slack;
+
+    Json::StreamWriterBuilder writer;
+    return Json::writeString(writer, json);
+}
+
+std::string APIServer::patternToJson(const AcousticPattern& p) {
+    Json::Value json;
+    json["timestamp"] = Json::Value::UInt64(p.timestamp);
+    json["pattern_id"] = p.pattern_name;
+    json["cavitation_type"] = static_cast<int>(p.cavitation_type);
+    json["pattern_name"] = p.pattern_name;
+    json["description"] = p.description;
+    json["sample_count"] = p.sample_count;
+    json["intra_cluster_variance"] = p.intra_cluster_variance;
+    json["silhouette_score"] = p.silhouette_score;
+    json["is_verified"] = p.is_verified_by_expert;
+    json["expert_note"] = p.expert_note;
+    json["last_updated"] = Json::Value::UInt64(p.last_updated);
+
+    Json::Value embedding(Json::arrayValue);
+    for (float e : p.embedding) {
+        embedding.append(e);
+    }
+    json["embedding"] = embedding;
+
+    Json::Value centroid(Json::arrayValue);
+    for (float c : p.centroid) {
+        centroid.append(c);
+    }
+    json["centroid"] = centroid;
+
+    Json::Value samplesArr(Json::arrayValue);
+    for (const auto& s : p.samples) {
+        Json::Value sample(Json::arrayValue);
+        for (float v : s) {
+            sample.append(v);
+        }
+        samplesArr.append(sample);
+    }
+    json["samples"] = samplesArr;
+
+    Json::StreamWriterBuilder writer;
+    return Json::writeString(writer, json);
+}
+
+std::string APIServer::diagnosisToJson(const DiagnosisResult& d) {
+    Json::Value json;
+    json["timestamp"] = Json::Value::UInt64(d.timestamp);
+    json["turbine_id"] = d.turbine_id;
+    json["sensor_id"] = d.sensor_id;
+    json["cavitation_type"] = static_cast<int>(d.cavitation_type);
+    json["status"] = static_cast<int>(d.status);
+    json["cluster_label"] = d.cluster_label;
+    json["is_known_pattern"] = d.is_known_pattern;
+    json["is_unknown"] = !d.is_known_pattern;
+    json["centroid_distance"] = d.centroid_distance;
+    json["silhouette_score"] = d.silhouette_score;
+    json["cluster_purity"] = d.cluster_purity;
+    json["cavitation_type_name"] = d.cavitation_type_name;
+    json["expert_note"] = d.expert_note;
+    json["analysis_latency_us"] = Json::Value::UInt64(d.analysis_latency_us);
+
+    Json::Value embedding(Json::arrayValue);
+    for (float e : d.embedding) {
+        embedding.append(e);
+    }
+    json["embedding"] = embedding;
+
+    Json::Value similarity(Json::arrayValue);
+    for (float s : d.pattern_similarity) {
+        similarity.append(s);
+    }
+    json["similarity"] = similarity;
+
+    Json::Value confidence(Json::arrayValue);
+    for (float c : d.confidence_scores) {
+        confidence.append(c);
+    }
+    json["confidence"] = confidence;
+
+    Json::StreamWriterBuilder writer;
+    return Json::writeString(writer, json);
+}
+
+HttpResponse APIServer::getControlStatus(const HttpRequest& req) {
+    auto statuses = dataProvider_->getControlStatus();
+    Json::Value json(Json::arrayValue);
+    for (const auto& s : statuses) {
+        json.append(Json::parse(controlStatusToJson(s)));
+    }
+    Json::StreamWriterBuilder writer;
+    return {200, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::postControlCommand(const HttpRequest& req) {
+    Json::CharReaderBuilder builder;
+    Json::Value body;
+    std::string errs;
+    std::istringstream ss(req.body);
+    if (!Json::parseFromStream(builder, ss, &body, &errs)) {
+        return {400, "application/json", jsonError("Invalid JSON body", 400), {}};
+    }
+
+    if (!body.isMember("turbine_id") || !body.isMember("mode") ||
+        !body.isMember("guide_vane") || !body.isMember("target_power") ||
+        !body.isMember("cav_avoidance_enable") || !body.isMember("weights")) {
+        return {400, "application/json", jsonError("Missing required parameters", 400), {}};
+    }
+
+    uint8_t turbineId = static_cast<uint8_t>(body["turbine_id"].asUInt());
+    ControlMode mode = static_cast<ControlMode>(body["mode"].asUInt());
+    float guideVane = body["guide_vane"].asFloat();
+    float targetPower = body["target_power"].asFloat();
+    bool cavAvoidance = body["cav_avoidance_enable"].asBool();
+
+    std::vector<float> weights;
+    const Json::Value& wArr = body["weights"];
+    if (!wArr.isArray() || wArr.size() != 4) {
+        return {400, "application/json", jsonError("weights must be array of 4 elements", 400), {}};
+    }
+    for (const auto& w : wArr) {
+        weights.push_back(w.asFloat());
+    }
+
+    bool success = dataProvider_->setControlCommand(turbineId, mode, guideVane, targetPower, cavAvoidance, weights);
+
+    Json::Value json;
+    json["success"] = success;
+    json["message"] = success ? "Control command accepted" : "Failed to apply control command";
+
+    Json::StreamWriterBuilder writer;
+    return {success ? 200 : 500, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::getRobotTasks(const HttpRequest& req) {
+    auto tasks = dataProvider_->getRobotTasks();
+    Json::Value json(Json::arrayValue);
+    for (const auto& t : tasks) {
+        json.append(Json::parse(robotTaskToJson(t)));
+    }
+    Json::StreamWriterBuilder writer;
+    return {200, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::getRobotTaskStatus(const HttpRequest& req) {
+    auto it = req.params.find("taskId");
+    if (it == req.params.end()) {
+        return {400, "application/json", jsonError("Missing taskId", 400), {}};
+    }
+    std::string taskId = it->second;
+
+    try {
+        auto task = dataProvider_->getRobotTaskStatus(taskId);
+        Json::Value json = Json::parse(robotTaskToJson(task));
+        Json::StreamWriterBuilder writer;
+        return {200, "application/json", Json::writeString(writer, json), {}};
+    } catch (...) {
+        return {404, "application/json", jsonError("Task not found", 404), {}};
+    }
+}
+
+HttpResponse APIServer::triggerRobotPlan(const HttpRequest& req) {
+    auto it = req.params.find("turbineId");
+    if (it == req.params.end()) {
+        return {400, "application/json", jsonError("Missing turbineId", 400), {}};
+    }
+    uint8_t turbineId = static_cast<uint8_t>(std::stoi(it->second));
+
+    Json::CharReaderBuilder builder;
+    Json::Value body;
+    std::string errs;
+    std::istringstream ss(req.body);
+    if (!Json::parseFromStream(builder, ss, &body, &errs)) {
+        return {400, "application/json", jsonError("Invalid JSON body", 400), {}};
+    }
+
+    if (!body.isMember("repair_mode") || !body.isMember("target_blades")) {
+        return {400, "application/json", jsonError("Missing repair_mode or target_blades", 400), {}};
+    }
+
+    RepairMode mode = static_cast<RepairMode>(body["repair_mode"].asUInt());
+    std::vector<uint8_t> targetBlades;
+    const Json::Value& bladesArr = body["target_blades"];
+    if (!bladesArr.isArray()) {
+        return {400, "application/json", jsonError("target_blades must be array", 400), {}};
+    }
+    for (const auto& b : bladesArr) {
+        targetBlades.push_back(static_cast<uint8_t>(b.asUInt()));
+    }
+
+    bool success = dataProvider_->triggerRobotPlan(turbineId, mode, targetBlades);
+
+    Json::Value json;
+    json["success"] = success;
+    json["message"] = success ? "Robot planning triggered" : "Failed to trigger robot planning";
+
+    Json::StreamWriterBuilder writer;
+    return {success ? 200 : 500, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::cancelRobotTask(const HttpRequest& req) {
+    auto it = req.params.find("taskId");
+    if (it == req.params.end()) {
+        return {400, "application/json", jsonError("Missing taskId", 400), {}};
+    }
+    std::string taskId = it->second;
+
+    bool success = dataProvider_->cancelRobotTask(taskId);
+
+    Json::Value json;
+    json["success"] = success;
+    json["message"] = success ? "Task cancelled" : "Failed to cancel task";
+
+    Json::StreamWriterBuilder writer;
+    return {success ? 200 : 500, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::getCurrentSchedule(const HttpRequest& req) {
+    auto schedule = dataProvider_->getCurrentSchedule();
+    Json::Value json = Json::parse(scheduleToJson(schedule));
+    Json::StreamWriterBuilder writer;
+    return {200, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::runScheduleOptimization(const HttpRequest& req) {
+    Json::CharReaderBuilder builder;
+    Json::Value body;
+    std::string errs;
+    std::istringstream ss(req.body);
+    if (!Json::parseFromStream(builder, ss, &body, &errs)) {
+        return {400, "application/json", jsonError("Invalid JSON body", 400), {}};
+    }
+
+    if (!body.isMember("target_total_power_mw") || !body.isMember("horizon_hours")) {
+        return {400, "application/json", jsonError("Missing target_total_power_mw or horizon_hours", 400), {}};
+    }
+
+    float targetPower = body["target_total_power_mw"].asFloat();
+    uint32_t horizonHours = body["horizon_hours"].asUInt();
+
+    bool success = dataProvider_->runOptimization(targetPower, horizonHours);
+
+    Json::Value json;
+    json["success"] = success;
+    json["message"] = success ? "Schedule optimization started" : "Failed to start optimization";
+
+    Json::StreamWriterBuilder writer;
+    return {success ? 200 : 500, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::executeSchedule(const HttpRequest& req) {
+    auto it = req.params.find("id");
+    if (it == req.params.end()) {
+        return {400, "application/json", jsonError("Missing schedule id", 400), {}};
+    }
+    uint8_t scheduleId = static_cast<uint8_t>(std::stoi(it->second));
+
+    bool success = dataProvider_->executeSchedule(scheduleId);
+
+    Json::Value json;
+    json["success"] = success;
+    json["message"] = success ? "Schedule execution started" : "Failed to execute schedule";
+
+    Json::StreamWriterBuilder writer;
+    return {success ? 200 : 500, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::getAcousticPatterns(const HttpRequest& req) {
+    auto patterns = dataProvider_->getAcousticPatterns();
+    Json::Value json(Json::arrayValue);
+    for (const auto& p : patterns) {
+        json.append(Json::parse(patternToJson(p)));
+    }
+    Json::StreamWriterBuilder writer;
+    return {200, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::getDiagnosisResults(const HttpRequest& req) {
+    uint32_t limit = 50;
+    auto it = req.params.find("limit");
+    if (it != req.params.end()) {
+        limit = static_cast<uint32_t>(std::stoi(it->second));
+    }
+
+    auto results = dataProvider_->getDiagnosisResults(limit);
+    Json::Value json(Json::arrayValue);
+    for (const auto& d : results) {
+        json.append(Json::parse(diagnosisToJson(d)));
+    }
+    Json::StreamWriterBuilder writer;
+    return {200, "application/json", Json::writeString(writer, json), {}};
+}
+
+HttpResponse APIServer::labelPattern(const HttpRequest& req) {
+    Json::CharReaderBuilder builder;
+    Json::Value body;
+    std::string errs;
+    std::istringstream ss(req.body);
+    if (!Json::parseFromStream(builder, ss, &body, &errs)) {
+        return {400, "application/json", jsonError("Invalid JSON body", 400), {}};
+    }
+
+    if (!body.isMember("pattern_id") || !body.isMember("cavitation_type") ||
+        !body.isMember("expert_note") || !body.isMember("is_verified")) {
+        return {400, "application/json", jsonError("Missing required parameters", 400), {}};
+    }
+
+    std::string patternId = body["pattern_id"].asString();
+    CavitationType type = static_cast<CavitationType>(body["cavitation_type"].asUInt());
+    std::string expertNote = body["expert_note"].asString();
+    bool verified = body["is_verified"].asBool();
+
+    bool success = dataProvider_->labelPattern(patternId, type, expertNote, verified);
+
+    Json::Value json;
+    json["success"] = success;
+    json["message"] = success ? "Pattern labeled successfully" : "Failed to label pattern";
+
+    Json::StreamWriterBuilder writer;
+    return {success ? 200 : 500, "application/json", Json::writeString(writer, json), {}};
 }
 
 }

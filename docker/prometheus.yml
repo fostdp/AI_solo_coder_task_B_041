@@ -24,6 +24,22 @@ scrape_configs:
     static_configs:
       - targets: ['api_gateway:9100']
 
+  - job_name: 'turbine_controller'
+    static_configs:
+      - targets: ['turbine_controller:9100']
+
+  - job_name: 'robot_planner'
+    static_configs:
+      - targets: ['robot_planner:9100']
+
+  - job_name: 'unit_scheduler'
+    static_configs:
+      - targets: ['unit_scheduler:9100']
+
+  - job_name: 'acoustic_diagnosis'
+    static_configs:
+      - targets: ['acoustic_diagnosis:9100']
+
   - job_name: 'clickhouse'
     static_configs:
       - targets: ['clickhouse:9363']

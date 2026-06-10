@@ -27,6 +27,58 @@ enum class CavitationStage : uint8_t {
     DEVELOPED   = 3
 };
 
+enum class CavitationType : uint8_t {
+    UNKNOWN     = 0,
+    CLOUD       = 1,
+    SHEET       = 2,
+    SUPER       = 3,
+    VORTEX      = 4,
+    TIP_LEAKAGE = 5
+};
+
+enum class ControlMode : uint8_t {
+    MANUAL          = 0,
+    EFFICIENCY_ONLY = 1,
+    CAVITATION_SAFE = 2,
+    MPC_OPTIMAL     = 3
+};
+
+enum class RobotStatus : uint8_t {
+    IDLE        = 0,
+    PLANNING    = 1,
+    DEPLOYING   = 2,
+    INSPECTING  = 3,
+    POLISHING   = 4,
+    WELDING     = 5,
+    RETURNING   = 6,
+    COMPLETED   = 7,
+    FAULT       = 8
+};
+
+enum class RepairMode : uint8_t {
+    INSPECTION_ONLY = 0,
+    POLISH          = 1,
+    WELD            = 2,
+    POLISH_AND_WELD = 3
+};
+
+enum class ScheduleStatus : uint8_t {
+    NOT_OPTIMIZED = 0,
+    OPTIMIZING    = 1,
+    CONVERGED     = 2,
+    PARTIAL_FEAS  = 3,
+    INFEASIBLE    = 4
+};
+
+enum class DiagnosisStatus : uint8_t {
+    PENDING       = 0,
+    EXTRACTING    = 1,
+    CLUSTERING    = 2,
+    MATCHING      = 3,
+    COMPLETED     = 4,
+    NEEDS_EXPERT  = 5
+};
+
 enum class ModelType : uint8_t {
     AUTOENCODER      = 1,
     ISOLATION_FOREST = 2,
@@ -205,5 +257,114 @@ inline uint64_t currentTimestampMs() {
         std::chrono::system_clock::now().time_since_epoch()
     ).count();
 }
+
+struct TurbineControlCommand {
+    uint64_t     timestamp;
+    uint8_t      turbine_id;
+    ControlMode  control_mode;
+    bool         cavitation_avoidance_enabled;
+    float        guide_vane_opening_deg;
+    float        target_power_mw;
+    float        current_head_m;
+    float        current_flow_m3s;
+    float        predicted_efficiency;
+    float        predicted_cavitation_risk;
+    float        mpc_cost_value;
+    std::vector<float> control_signals;
+    std::vector<float> horizon_states;
+    std::string  control_action_desc;
+};
+
+struct RobotWaypoint {
+    float x;
+    float y;
+    float z;
+    float orientation_w;
+    float orientation_x;
+    float orientation_y;
+    float orientation_z;
+    float speed_mm_s;
+    float dwell_time_s;
+    uint8_t action_type;
+};
+
+struct RobotRepairTask {
+    uint64_t          timestamp;
+    uint8_t           turbine_id;
+    RobotStatus       robot_status;
+    RepairMode        repair_mode;
+    std::vector<uint8_t> target_blade_ids;
+    uint64_t          estimated_duration_ms;
+    float             total_repair_area_cm2;
+    float             total_weld_volume_cm3;
+    std::vector<RobotWaypoint> inspection_path;
+    std::vector<RobotWaypoint> polish_trajectory;
+    std::vector<RobotWaypoint> weld_trajectory;
+    std::vector<float>  blade_damage_map;
+    std::string         repair_sequence;
+    float               robot_pos[3];
+    uint32_t            current_waypoint_idx;
+};
+
+struct UnitSchedule {
+    uint8_t  turbine_id;
+    bool     is_active;
+    float    power_mw;
+    float    efficiency_pct;
+    float    cavitation_risk;
+    float    operating_hours;
+    float    startup_cost;
+    float    shutdown_cost;
+};
+
+struct PlantSchedule {
+    uint64_t          timestamp;
+    ScheduleStatus    status;
+    uint8_t           schedule_id;
+    uint64_t          horizon_s;
+    float             target_total_power_mw;
+    float             current_total_power_mw;
+    float             optimized_efficiency_pct;
+    float             cavitation_risk_reduction_pct;
+    std::vector<UnitSchedule> units;
+    float             mip_objective_value;
+    std::vector<float> constraint_slack;
+    std::string       note;
+};
+
+struct AcousticPattern {
+    uint64_t           timestamp;
+    CavitationType     cavitation_type;
+    std::string        pattern_name;
+    std::string        description;
+    std::vector<float> embedding;
+    std::vector<float> centroid;
+    std::vector<std::vector<float>> samples;
+    uint32_t           sample_count;
+    float              intra_cluster_variance;
+    float              silhouette_score;
+    bool               is_verified_by_expert;
+    std::string        expert_note;
+    uint64_t           last_updated;
+};
+
+struct DiagnosisResult {
+    uint64_t           timestamp;
+    uint8_t            turbine_id;
+    uint8_t            sensor_id;
+    CavitationType     cavitation_type;
+    DiagnosisStatus    status;
+    uint8_t            cluster_label;
+    bool               is_known_pattern;
+    std::vector<float> embedding;
+    std::vector<float> pattern_similarity;
+    std::vector<float> confidence_scores;
+    float              centroid_distance;
+    float              silhouette_score;
+    float              cluster_purity;
+    std::string        cavitation_type_name;
+    std::string        expert_note;
+    uint64_t           analysis_latency_us;
+};
 
 }

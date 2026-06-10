@@ -80,6 +80,10 @@
                     <button class="tab-btn active" data-tab="turbine-view">水轮机视图</button>
                     <button class="tab-btn" data-tab="waterfall-view">瀑布图</button>
                     <button class="tab-btn" data-tab="alarm-view">告警信息</button>
+                    <button class="tab-btn" data-tab="control-view">调节控制</button>
+                    <button class="tab-btn" data-tab="robot-view">机器人检修</button>
+                    <button class="tab-btn" data-tab="schedule-view">优化调度</button>
+                    <button class="tab-btn" data-tab="diagnosis-view">声纹诊断</button>
                 </div>
 
                 <div class="tab-content active" id="turbine-view">
@@ -142,6 +146,22 @@
                         <div class="alarm-list" id="alarmList"></div>
                     </div>
                 </div>
+
+                <div class="tab-content" id="control-view">
+                    <div id="controlTabContainer" style="flex:1;display:flex;"></div>
+                </div>
+
+                <div class="tab-content" id="robot-view">
+                    <div id="robotTabContainer" style="flex:1;display:flex;"></div>
+                </div>
+
+                <div class="tab-content" id="schedule-view">
+                    <div id="scheduleTabContainer" style="flex:1;display:flex;"></div>
+                </div>
+
+                <div class="tab-content" id="diagnosis-view">
+                    <div id="diagnosisTabContainer" style="flex:1;display:flex;"></div>
+                </div>
             </main>
 
             <aside class="right-panel">
@@ -202,6 +222,10 @@
     <script src="js/turbine_3d_viewer.js"></script>
     <script src="js/blade_detail.js"></script>
     <script src="js/waterfall_chart.js"></script>
+    <script src="js/mpc_control_tab.js"></script>
+    <script src="js/robot_repair_tab.js"></script>
+    <script src="js/unit_schedule_tab.js"></script>
+    <script src="js/acoustic_diagnosis_tab.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

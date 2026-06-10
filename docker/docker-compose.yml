@@ -112,6 +112,58 @@ services:
       - cavitation_detector
       - fatigue_evaluator
       - alarm_pusher
+      - turbine_controller
+      - robot_planner
+      - unit_scheduler
+      - acoustic_diagnosis
+
+  turbine_controller:
+    <<: *cpp-common
+    container_name: turbine-controller
+    command: /opt/turbine/bin/turbine_controller/turbine_controller -c /opt/turbine/config/config.json
+    ports:
+      - "9106:9100"
+    environment:
+      SERVICE_NAME: turbine_controller
+    depends_on:
+      - pxi_collector
+      - cavitation_detector
+      - fatigue_evaluator
+
+  robot_planner:
+    <<: *cpp-common
+    container_name: turbine-robot-planner
+    command: /opt/turbine/bin/robot_planner/robot_planner -c /opt/turbine/config/config.json
+    ports:
+      - "9107:9100"
+    environment:
+      SERVICE_NAME: robot_planner
+    depends_on:
+      - fatigue_evaluator
+      - alarm_pusher
+
+  unit_scheduler:
+    <<: *cpp-common
+    container_name: turbine-unit-scheduler
+    command: /opt/turbine/bin/unit_scheduler/unit_scheduler -c /opt/turbine/config/config.json
+    ports:
+      - "9108:9100"
+    environment:
+      SERVICE_NAME: unit_scheduler
+    depends_on:
+      - pxi_collector
+      - cavitation_detector
+
+  acoustic_diagnosis:
+    <<: *cpp-common
+    container_name: turbine-acoustic-diagnosis
+    command: /opt/turbine/bin/acoustic_diagnosis/acoustic_diagnosis -c /opt/turbine/config/config.json
+    ports:
+      - "9109:9100"
+    environment:
+      SERVICE_NAME: acoustic_diagnosis
+    depends_on:
+      - pxi_collector
 
   # ======================== Simulators ========================
 

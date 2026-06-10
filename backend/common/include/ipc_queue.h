@@ -25,6 +25,10 @@ enum class IPCChannel : uint32_t {
     STRESS = 3,
     LIFE = 4,
     ALARM = 5,
+    CONTROL = 6,
+    ROBOT_PLAN = 7,
+    SCHEDULE = 8,
+    DIAGNOSIS = 9,
     COUNT
 };
 
@@ -34,7 +38,11 @@ static const char* IPC_CHANNEL_NAMES[] = {
     "/turbine_cavitation",
     "/turbine_stress",
     "/turbine_life",
-    "/turbine_alarm"
+    "/turbine_alarm",
+    "/turbine_control",
+    "/turbine_robot_plan",
+    "/turbine_schedule",
+    "/turbine_diagnosis"
 };
 
 static constexpr size_t IPC_DEFAULT_CAPACITY = 65536;
@@ -353,6 +361,81 @@ struct IPCMessageAlarm {
     char     alarm_message[256];
     char     maintenance_suggestion[512];
     char     acknowledged_by[32];
+};
+
+struct IPCMessageControl {
+    uint8_t  turbine_id;
+    uint8_t  control_mode;
+    uint8_t  cavitation_avoidance_enabled;
+    uint8_t  _pad[5];
+    uint64_t timestamp;
+    float    guide_vane_opening_deg;
+    float    target_power_mw;
+    float    current_head_m;
+    float    current_flow_m3s;
+    float    predicted_efficiency;
+    float    predicted_cavitation_risk;
+    float    mpc_cost_value;
+    float    control_signal[8];
+    float    horizon_states[32];
+    char     control_action_desc[128];
+};
+
+struct IPCMessageRobotPlan {
+    uint8_t  turbine_id;
+    uint8_t  blade_count;
+    uint8_t  robot_status;
+    uint8_t  repair_mode;
+    uint8_t  target_blade_ids[15];
+    uint8_t  _pad[1];
+    uint64_t timestamp;
+    uint64_t estimated_duration_ms;
+    float    total_repair_area_cm2;
+    float    total_weld_volume_cm3;
+    float    waypoint_path[128];
+    float    blade_damage_map[90];
+    float    weld_trajectory[128];
+    float    polish_trajectory[128];
+    char     repair_sequence[256];
+};
+
+struct IPCMessageSchedule {
+    uint8_t  schedule_id;
+    uint8_t  optimization_status;
+    uint8_t  active_units_mask;
+    uint8_t  _pad[5];
+    uint64_t timestamp;
+    uint64_t scheduling_horizon_s;
+    float    target_total_power_mw;
+    float    current_total_power_mw;
+    float    optimized_efficiency_pct;
+    float    cavitation_risk_reduction_pct;
+    float    unit_power_mw[6];
+    float    unit_efficiency[6];
+    float    unit_cavitation_risk[6];
+    float    unit_operating_hours[6];
+    float    mip_objective_value;
+    float    constraint_slack[8];
+    char     schedule_note[256];
+};
+
+struct IPCMessageDiagnosis {
+    uint8_t  turbine_id;
+    uint8_t  sensor_id;
+    uint8_t  cavitation_type;
+    uint8_t  diagnosis_status;
+    uint8_t  cluster_label;
+    uint8_t  is_known_pattern;
+    uint8_t  _pad[2];
+    uint64_t timestamp;
+    float    feature_embedding[32];
+    float    pattern_similarity[4];
+    float    confidence_scores[4];
+    float    centroid_distance;
+    float    silhouette_score;
+    float    cluster_purity;
+    char     cavitation_type_name[32];
+    char     expert_note[256];
 };
 
 }

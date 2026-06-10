@@ -168,6 +168,54 @@ set_target_properties(pxi_simulator PROPERTIES
 )
 
 # ============================================================
+# Service 6: Turbine Controller (MPC水轮机调节控制 - Feature 1)
+# ============================================================
+add_executable(turbine_controller
+    services/turbine_controller/main.cpp
+    src/turbine_mpc_controller.cpp
+)
+target_link_libraries(turbine_controller PRIVATE common algo ${THIRD_PARTY_LIBS})
+set_target_properties(turbine_controller PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/turbine_controller
+)
+
+# ============================================================
+# Service 7: Robot Planner (水下机器人检修路径规划 - Feature 2)
+# ============================================================
+add_executable(robot_planner
+    services/robot_planner/main.cpp
+    src/robot_repair_planner.cpp
+)
+target_link_libraries(robot_planner PRIVATE common algo ${THIRD_PARTY_LIBS})
+set_target_properties(robot_planner PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/robot_planner
+)
+
+# ============================================================
+# Service 8: Unit Scheduler (多机组MIP优化调度 - Feature 3)
+# ============================================================
+add_executable(unit_scheduler
+    services/unit_scheduler/main.cpp
+    src/unit_scheduler.cpp
+)
+target_link_libraries(unit_scheduler PRIVATE common algo ${THIRD_PARTY_LIBS})
+set_target_properties(unit_scheduler PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/unit_scheduler
+)
+
+# ============================================================
+# Service 9: Acoustic Diagnosis (声纹特征库+度量学习诊断 - Feature 4)
+# ============================================================
+add_executable(acoustic_diagnosis
+    services/acoustic_diagnosis/main.cpp
+    src/acoustic_diagnosis.cpp
+)
+target_link_libraries(acoustic_diagnosis PRIVATE common algo ${THIRD_PARTY_LIBS})
+set_target_properties(acoustic_diagnosis PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/acoustic_diagnosis
+)
+
+# ============================================================
 # Install / Package
 # ============================================================
 install(DIRECTORY ../config DESTINATION .)
@@ -177,11 +225,15 @@ install(DIRECTORY ../tests DESTINATION . OPTIONAL)
 # Print summary
 message(STATUS "==================================================")
 message(STATUS "  Turbine Monitor Microservices Build Targets:")
-message(STATUS "    [1/7] pxi_collector         -> UDP采集+FFT/小波")
-message(STATUS "    [2/7] cavitation_detector   -> AE/IF+工况归一化")
-message(STATUS "    [3/7] fatigue_evaluator     -> 四点法雨流+Miner")
-message(STATUS "    [4/7] alarm_pusher          -> 分级告警+IEC61850")
-message(STATUS "    [5/7] api_gateway           -> REST API聚合")
-message(STATUS "    [6/7] turbine_monitor       -> 单体(兼容)")
-message(STATUS "    [7/7] pxi_simulator         -> PXI流量模拟器")
+message(STATUS "    [1/11] pxi_collector         -> UDP采集+FFT/小波")
+message(STATUS "    [2/11] cavitation_detector   -> AE/IF+工况归一化")
+message(STATUS "    [3/11] fatigue_evaluator     -> 四点法雨流+Miner")
+message(STATUS "    [4/11] alarm_pusher          -> 分级告警+IEC61850")
+message(STATUS "    [5/11] api_gateway           -> REST API聚合")
+message(STATUS "    [6/11] turbine_controller    -> MPC调节联动控制(F1)")
+message(STATUS "    [7/11] robot_planner         -> 机器人检修路径规划(F2)")
+message(STATUS "    [8/11] unit_scheduler        -> 多机组MIP优化调度(F3)")
+message(STATUS "    [9/11] acoustic_diagnosis    -> 声纹度量学习诊断(F4)")
+message(STATUS "    [10/11] turbine_monitor      -> 单体(兼容)")
+message(STATUS "    [11/11] pxi_simulator        -> PXI流量模拟器")
 message(STATUS "==================================================")
